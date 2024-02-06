@@ -1,0 +1,99 @@
+#!/bin/csh -f
+#_______________________________________________________________________________
+#
+# (C) dGB Beheer B.V.
+# $Id$
+#
+# remote execution script
+#_______________________________________________________________________________
+
+if ( $?DTECT_SCRIPT_VERBOSE ) then
+    echo "$0  ++++++"
+    echo "args: $*"
+    set verbose=yes
+    set echo=on
+endif
+
+set comm=""
+
+next_arg:
+
+if ( $1 == "+-+" ) then
+
+	shift
+	set cmd=`echo $comm | sed "s%-=-%'%g"`
+	eval $cmd
+	set comm=""
+	goto next_arg
+
+else if ( $1 == "+-+-+" ) then
+
+	shift
+	set cmd=`echo $comm | sed "s%-=-%'%g"`
+	eval $cmd
+	goto do_rest
+
+else
+
+	set comm="$comm $1"
+	shift
+	goto next_arg
+
+endif
+
+do_rest:
+
+if ( -e "$DTECT_APPL/bin/init_dtect" ) then
+    if ( $?DTECT_SCRIPT_DEBUG ) echo "$0 : sourcing $DTECT_APPL/bin/init_dtect"
+    source "$DTECT_APPL/bin/init_dtect"
+endif
+
+if ( $?DTECT_SCRIPT_DEBUG ) then
+
+    set logfile=/tmp/oddebug$$.log
+    touch "$logfile" >& /dev/null
+    if ( ! -e "$logfile" ) then
+	if ( $?TMP ) then
+	    set logfile="$TMP/oddebug$$.log"
+	else if ( $?TEMP ) then
+	    set logfile="$TEMP/oddebug$$.log"
+	endif
+    endif
+
+    echo "logging to $logfile"
+    if ( $?DTECT_DATA ) then
+	echo "$0 : DTECT_DATA = $DTECT_DATA" > $logfile
+    endif
+    echo "$0 : DTECT_APPL = $DTECT_APPL" >> $logfile
+    if ( $?DTECT_USER ) then
+	echo "$0 : DTECT_USER = $DTECT_USER" >> $logfile
+    else
+	echo "$0 : DTECT_USER = <empty>" >> $logfile
+    endif
+    if ( $?LD_LIBRARY_PATH ) then
+	echo "$0 : LD_LIBRARY_PATH = $LD_LIBRARY_PATH" >> $logfile
+    else
+	echo "$0 : LD_LIBRARY_PATH = <empty>" >> $logfile
+    endif
+    if ( $?LM_LICENSE_FILE ) then
+	echo "$0 : LM_LICENSE_FILE = $LM_LICENSE_FILE" >> $logfile
+    else
+	echo "$0 : LM_LICENSE_FILE = <empty>" >> $logfile
+    endif
+    if ( $?DISPLAY ) then
+	echo "$0 : DISPLAY = $DISPLAY" >> $logfile
+    else
+	echo "$0 : DISPLAY = <empty>" >> $logfile
+    endif
+
+    echo "$0 : $DTECT_APPL/bin/od_exec $*" >> $logfile
+    "$DTECT_APPL/bin/od_exec" $* >> $logfile
+
+else
+
+    "$DTECT_APPL/bin/od_exec" $*
+
+endif
+
+exit $status
+

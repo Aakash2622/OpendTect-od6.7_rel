@@ -1,0 +1,27 @@
+#!/bin/csh -f
+#_______________________________________________________________________________
+#
+# OpenTect: execution of batch programs on the command line.
+# $Id$
+#_______________________________________________________________________________
+
+if ( ! $?CSHCMD ) then
+    setenv CSHCMD ""
+endif
+
+unsetenv DTECT_APPL
+source "__INST_DIR__/bin/init_dtect" >&! /dev/null
+
+if ( $status != 0 ) then
+    exit 1
+endif
+which initwarn >& /dev/null
+set result=$status
+if ( $result == 0 ) then
+    if ( `which initwarn | grep aliased | wc -l` == 1 ) then
+	initwarn
+	unalias initwarn
+    endif
+endif
+
+$CSHCMD "__INST_DIR__/bin/od_exec" $*:q

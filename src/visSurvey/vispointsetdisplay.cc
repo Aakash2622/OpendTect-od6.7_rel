@@ -1,0 +1,319 @@
+/*+
+ * (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ * AUTHOR   : Satyaki Maitra
+ * DATE     : March 2009
+-*/
+
+
+#include "randcolor.h"
+#include "selector.h"
+#include "viscoord.h"
+#include "visevent.h"
+#include "vispointsetdisplay.h"
+
+#include "datapointset.h"
+#include "vispointset.h"
+#include "vismaterial.h"
+#include "executor.h"
+#include "uistrings.h"
+
+
+namespace visSurvey {
+
+
+PointSetDisplay::PointSetDisplay()
+    : VisualObjectImpl( true )
+    , data_(0)
+    , transformation_(0)
+    , dpsdispprop_(0)
+    , pointset_( visBase::PointSet::create() )
+{
+   refPtr( pointset_ );
+   Geometry::RangePrimitiveSet* range =
+	    Geometry::RangePrimitiveSet::create();
+   pointset_->addPrimitiveSet( range );
+   addChild( pointset_->osgNode());
+}
+
+
+PointSetDisplay::~PointSetDisplay()
+{
+    setSceneEventCatcher( 0 );
+    setDisplayTransformation( 0 );
+
+    delete dpsdispprop_;
+
+    unRefAndZeroPtr( pointset_ );
+
+}
+
+
+void PointSetDisplay::setDispProp( const DataPointSetDisplayProp* prop )
+{
+    delete dpsdispprop_;
+    dpsdispprop_ = prop->clone();
+}
+
+
+void PointSetDisplay::setPointSize( int sz )
+{
+    if ( pointset_ )
+        pointset_->setPointSize( sz );
+}
+
+int PointSetDisplay::getPointSize() const
+{ return pointset_->getPointSize(); }
+
+
+bool PointSetDisplay::setDataPack( DataPack::ID dpsid )
+{
+    auto pack = DPM( DataPackMgr::PointID() ).get<DataPointSet>( dpsid );
+    if ( !pack )
+	return false;
+
+    data_ = pack;
+    return true;
+}
+
+
+class PointSetDisplayUpdater : public Executor
+{ mODTextTranslationClass(PointSetDisplayUpdater)
+
+public:
+PointSetDisplayUpdater( visBase::PointSet& pointset, DataPointSet& dps,
+			DataPointSetDisplayProp& dpsdispprop )
+    : Executor(mFromUiStringTodo(tr("Creating Point Display in 3D Scene")))
+    , pointset_(pointset)
+    , data_(dps)
+    , dpsdispprop_(dpsdispprop)
+    , nrdone_(0)
+    , colid_(dpsdispprop.dpsColID())
+    , showselected_(dpsdispprop.showSelected())
+    , nrpoints_(0)
+{
+    pointset_.removeAllPoints();
+    pointset_.getMaterial()->clear();
+}
+
+od_int64 nrDone() const
+{ return nrdone_; }
+
+od_int64 totalNr() const
+{ return data_.size(); }
+
+uiString message() const
+{ return uiStrings::phrHandling(uiStrings::sPosition(mPlural)); }
+
+uiString nrDoneText() const
+{ return uiStrings::phrHandled(uiStrings::sPosition(mPlural)); }
+
+int nextStep()
+{
+    if ( nrdone_ >= data_.size() )
+    {
+	Geometry::RangePrimitiveSet* range =
+	    (Geometry::RangePrimitiveSet*) pointset_.getPrimitiveSet(0);
+
+	if ( range )
+	{
+	    Interval<int> rg( 0, nrpoints_-1 );
+	    range->setRange( rg );
+	}
+	pointset_.materialChangeCB( 0 );
+	pointset_.requestSingleRedraw();
+	return Finished();
+    }
+
+    DataPointSet::RowID rowid = mCast(DataPointSet::RowID,nrdone_);
+    nrdone_++;
+    if ( showselected_ && !data_.isSelected(rowid) )
+	return MoreToDo();
+
+    Color col;
+    if ( showselected_ )
+    {
+	int selgrp = data_.selGroup( rowid );
+	col = dpsdispprop_.getColor( (float)selgrp );
+    }
+    else
+    {
+	const float val = data_.value( colid_, rowid );
+	if ( mIsUdf(val) )
+	    return MoreToDo();
+
+	col = dpsdispprop_.getColor( val );
+    }
+
+    const int ptidx = pointset_.addPoint(
+			    Coord3(data_.coord(rowid),data_.z(rowid)) );
+    pointset_.getMaterial()->setColor( col, ptidx );
+    nrpoints_++;
+    return MoreToDo();
+}
+
+protected :
+
+    visBase::PointSet&		pointset_;
+    DataPointSet&		data_;
+    const int			colid_;
+    const bool			showselected_;
+    DataPointSetDisplayProp&	dpsdispprop_;
+    od_int64			nrdone_;
+    int				nrpoints_;
+
+};
+
+
+Executor* PointSetDisplay::getUpdater()
+{
+    if ( !pointset_ ) return 0;
+
+    PointSetDisplayUpdater* ret = new PointSetDisplayUpdater( *pointset_,
+							*data_, *dpsdispprop_ );
+    return ret;
+}
+
+
+void PointSetDisplay::update( TaskRunner* tskr )
+{
+    Executor* updater = getUpdater();
+    if ( !updater ) return;
+
+    TaskRunner::execute( tskr, *updater );
+}
+
+
+class PointSetColorUpdater : public ParallelTask
+{
+public:
+PointSetColorUpdater( visBase::PointSet& ps, DataPointSet& dps,
+		      DataPointSetDisplayProp& dispprop )
+    : ParallelTask("Updating Colors")
+    , pointset_(ps)
+    , data_(dps)
+    , dpsdispprop_(dispprop)
+{}
+
+od_int64 nrIterations() const { return data_.size(); }
+
+bool doWork( od_int64 start, od_int64 stop, int )
+{
+    for ( int idx=mCast(int,start); idx<=mCast(int,stop); idx++ )
+    {
+	const float val = data_.value( dpsdispprop_.dpsColID(), idx );
+	const Color col = dpsdispprop_.getColor( val );
+	pointset_.getMaterial()->setColor( col, idx );
+    }
+
+    return true;
+}
+
+protected:
+
+    visBase::PointSet&		pointset_;
+    DataPointSet&		data_;
+    DataPointSetDisplayProp&	dpsdispprop_;
+
+};
+
+void PointSetDisplay::updateColors()
+{
+    if ( !pointset_ || pointset_->size() != data_->size() ) return;
+
+    PointSetColorUpdater updater( *pointset_, *data_, *dpsdispprop_ );
+    updater.execute();
+    pointset_->materialChangeCB( 0 );
+    requestSingleRedraw();
+}
+
+
+bool PointSetDisplay::removeSelections( TaskRunner* taskr )
+{
+    const Selector<Coord3>* selector = scene_ ? scene_->getSelector() : 0;
+    if ( !selector || !selector->isOK() )
+	return false;
+
+    bool changed = false;
+    for ( int idy=0; idy<pointset_->getCoordinates()->size(true); idy++ )
+    {
+	Coord3 pos = pointset_->getCoordinates()->getPos( idy );
+	if ( selector->includes(pos) )
+	{
+	    DataPointSet::RowID rid = data_->find( DataPointSet::Pos(pos) );
+	    if ( rid < 0 )
+		continue;
+
+	    if ( dpsdispprop_->showSelected() )
+		data_->setSelected( rid, -1 );
+	    else
+		data_->setValue( dpsdispprop_->dpsColID(), rid, mUdf(float) );
+
+	    changed = true;
+	}
+    }
+
+    update( taskr );
+    return changed;
+}
+
+
+void PointSetDisplay::setDisplayTransformation( const mVisTrans* nt )
+{
+    if ( transformation_ == nt )
+	return;
+
+    if ( transformation_ )
+	transformation_->unRef();
+
+    transformation_ = nt;
+    if ( transformation_ )
+	transformation_->ref();
+
+    if ( pointset_ )
+        pointset_->setDisplayTransformation( transformation_ );
+}
+
+
+const mVisTrans* PointSetDisplay::getDisplayTransformation() const
+{ return transformation_; }
+
+
+void PointSetDisplay::setPixelDensity( float dpi )
+{
+    VisualObjectImpl::setPixelDensity( dpi );
+
+    if ( pointset_ )
+	pointset_->setPixelDensity( dpi );
+}
+
+
+void PointSetDisplay::getMousePosInfo( const visBase::EventInfo& eventinfo,
+				       Coord3& pos,
+				       BufferString& val,
+				       BufferString& info ) const
+{
+    info = ""; val = "";
+    if ( !data_ ) return;
+
+    info = data_->name();
+    if ( !dpsdispprop_ )
+	return;
+
+    info += ": ";
+    if ( dpsdispprop_->showSelected() )
+	info += "Selection Group";
+    else
+	info += data_->colName( dpsdispprop_->dpsColID() );
+
+    BinID binid = s3dgeom_->transform( pos.getXY() );
+    DataPointSet::RowID rid = data_->findFirst( binid );
+    if ( rid < 0 )
+	return;
+
+    if ( dpsdispprop_->showSelected() )
+	val.add( data_->selGroup(rid) );
+    else
+	val.add( data_->value(dpsdispprop_->dpsColID(),rid) );
+}
+
+} //namespace visSurvey

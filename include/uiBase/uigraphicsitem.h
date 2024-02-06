@@ -1,0 +1,198 @@
+#pragma once
+
+/*+
+________________________________________________________________________
+
+ (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ Author:	Nanne Hemstra
+ Date:		January 2007
+________________________________________________________________________
+
+-*/
+
+#include "uibasemod.h"
+#include "notify.h"
+#include "keyenum.h"
+#include "uigeom.h"
+#include "manobjectset.h"
+#include "uistring.h"
+
+namespace OD { class LineStyle; class FillPattern; }
+
+class MouseCursor;
+class MouseEvent;
+class uiGraphicsScene;
+
+mFDQtclass(QGraphicsItem)
+mFDQtclass(QGraphicsItemGroup)
+
+mExpClass(uiBase) uiGraphicsItem : public CallBacker
+{
+public:
+			uiGraphicsItem();
+			~uiGraphicsItem();
+
+    mQtclass(QGraphicsItem*)		qGraphicsItem()
+					{ return qgraphicsitem_; }
+    const mQtclass(QGraphicsItem*)	qGraphicsItem() const
+					{ return qgraphicsitem_; }
+
+    void		show();
+    void		hide();
+
+    virtual void	setAcceptHoverEvents(bool);
+    virtual void	setAcceptedMouseButtons(OD::ButtonState);
+    virtual void	setFiltersChildEvents(bool);
+    virtual void	setMovable(bool);
+    virtual void	setSelectable(bool);
+    virtual void	setSelected(bool);
+    virtual void	setVisible(bool);
+
+    virtual OD::ButtonState acceptedMouseButtonsEnabled() const;
+    virtual bool	isFiltersChildEventsEnabled() const;
+    virtual bool	isHoverEventsAccepted() const;
+    virtual bool	isMovable() const;
+    virtual bool	isSelectable() const;
+    virtual bool	isSelected() const		{ return selected_; }
+    virtual bool	isVisible() const;
+
+    Geom::Point2D<float> getPos() const;
+    void		setPos( const uiWorldPoint&);
+    void		setPos( const uiPoint& p );
+    void		setPos( const Geom::Point2D<float>& );
+    void		setPos( float x, float y );
+    void		moveBy(float x,float y);
+    float		getRotation();
+    void		getScale(float& sx,float& sy);
+    void		setRotation(float angle);
+    void		setScale(float sx,float sy);
+    void		setZValue(int); //<! z value decides the stacking order
+
+
+    uiGraphicsItem*	getChild(int);
+    bool		isPresent(const uiGraphicsItem&) const;
+    int			nrChildren() const;
+    void		removeChild(uiGraphicsItem*,bool withdelete);
+    void		removeAll(bool withdelete);
+    void		addChild(uiGraphicsItem*);
+
+    uiPoint		transformToScenePos(const uiPoint& itmpos) const;
+    void		setItemIgnoresTransformations(bool);
+    bool		isItemIgnoresTransformationsEnabled() const;
+    virtual uiRect	boundingRect() const;
+
+    virtual void	setPenStyle(const OD::LineStyle&,bool usetransp=false);
+    virtual void	setPenColor(const Color&,bool usetransp=false);
+    virtual void	setFillColor(const Color&,bool usetransp=false);
+    virtual void	setFillPattern(const OD::FillPattern&);
+    virtual void	setTransparency(float);
+			/*!< To set the overall transparency of graphics item.
+			 Passed value should be between 0 and 1. If the item
+			 contains colors with some transparency, resultant
+			 transparency of the color will be an effective value
+			 of both transparencies. */
+
+    void		setCursor(const MouseCursor&);
+    void		setToolTip(const uiString&);
+
+    virtual void	setScene(uiGraphicsScene*);
+    virtual uiGraphicsItem*	findItem(QGraphicsItem*);
+
+    int			id() const			{ return id_; }
+    int			getZValue() const;
+
+    mDeprecated void	rotate(float angle) { setRotation(angle); }
+    mDeprecated void	scale(float sx,float sy) { setScale( sx, sy ); }
+
+    virtual void	translateText();
+
+    CNotifier<uiGraphicsItem,const MouseEvent&> leftClicked;
+    CNotifier<uiGraphicsItem,const MouseEvent&> rightClicked;
+protected:
+
+			uiGraphicsItem(QGraphicsItem*);
+
+    mQtclass(QGraphicsItem*) qgraphicsitem_;
+
+    virtual mQtclass(QGraphicsItem*) mkQtObj()                  { return 0; }
+    bool		selected_; // Remove when things in Qt works
+    uiGraphicsScene*	scene_;
+    ObjectSet<uiGraphicsItem> children_;
+    uiGraphicsItem*	parent_;
+
+    virtual void	stPos(float,float);
+
+private:
+
+    void		updateTransform();
+
+    static int		getNewID();
+    const int		id_;
+
+    uiString		tooltip_;
+
+    uiWorldPoint	translation_;
+    uiWorldPoint	scale_;
+    double		angle_;
+};
+
+
+mExpClass(uiBase) uiGraphicsItemSet : public ManagedObjectSet<uiGraphicsItem>
+{
+public:
+			uiGraphicsItemSet()		{}
+
+    void		add( uiGraphicsItem* itm )	{ (*this) += itm; }
+
+    void		setZValue(int); //<! z value decides the stacking order
+    void		setVisible(bool yn);
+};
+
+
+
+mExpClass(uiBase) uiGraphicsItemGroup : public uiGraphicsItem
+{
+public:
+			uiGraphicsItemGroup(bool owner=false);
+			uiGraphicsItemGroup(const ObjectSet<uiGraphicsItem>&);
+			~uiGraphicsItemGroup();
+			//!<If owner, it deletes all items
+
+    void		setScene(uiGraphicsScene*);
+
+    void		setIsOwner( bool own )	{ owner_ = own; }
+    bool		isOwner() const		{ return owner_; }
+
+    void		add(uiGraphicsItem*);
+    void		remove(uiGraphicsItem*,bool withdelete);
+    void		removeAll(bool withdelete);
+    bool		isEmpty() const		{ return items_.isEmpty(); }
+    int			size() const		{ return items_.size(); }
+    bool		validIdx(int idx)	{ return items_.validIdx(idx); }
+    uiGraphicsItem*	getUiItem( int idx )	{ return gtItm(idx); }
+    const uiGraphicsItem* getUiItem( int idx ) const	{ return gtItm(idx); }
+    bool		isPresent(const uiGraphicsItem&) const;
+    virtual uiGraphicsItem*	findItem(QGraphicsItem*);
+
+    virtual bool	isVisible() const;
+    virtual void	setVisible(bool);
+    virtual uiRect	boundingRect() const;
+    mQtclass(QGraphicsItemGroup*)	qGraphicsItemGroup()
+					{ return qgraphicsitemgrp_; }
+
+protected:
+
+    void				translateText();
+
+    mQtclass(QGraphicsItem*)		mkQtObj();
+
+    bool				owner_;
+    bool				isvisible_;
+    mQtclass(QGraphicsItemGroup*)	qgraphicsitemgrp_;
+    ObjectSet<uiGraphicsItem>		items_;
+    ObjectSet<uiGraphicsItem>		items2bdel_;
+
+    uiGraphicsItem*	gtItm( int idx ) const
+			{ return !items_.validIdx(idx) ? 0
+			: const_cast<uiGraphicsItemGroup*>(this)->items_[idx]; }
+};

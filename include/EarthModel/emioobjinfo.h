@@ -1,0 +1,105 @@
+#pragma once
+
+/*+
+________________________________________________________________________
+
+ (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ Author:	Satyaki Maitra
+ Date:		April 2010
+________________________________________________________________________
+
+-*/
+
+#include "emobject.h"
+#include "ranges.h"
+#include "stratlevel.h"
+#include "typeset.h"
+#include "uistring.h"
+
+class BufferStringSet;
+class TrcKeyZSampling;
+class IOObj;
+
+namespace EM
+{
+
+class dgbSurfaceReader;
+class SurfaceIOData;
+
+/*!
+\brief Info on IOObj for earthmodel.
+*/
+
+mExpClass(EarthModel) IOObjInfo
+{ mODTextTranslationClass(IOObjInfo);
+public:
+
+    typedef Strat::Level::ID		LevelID;
+
+			IOObjInfo(const IOObj*);
+			IOObjInfo(const IOObj&);
+			IOObjInfo(const DBKey&);
+			IOObjInfo(const IOObjInfo&);
+			~IOObjInfo();
+    IOObjInfo&		operator =(const IOObjInfo&);
+
+    enum ObjectType	{ Unknown, Horizon3D, Horizon2D,
+			  FaultStickSet, Fault, Body };
+			mDeclareEnumUtils(ObjectType)
+
+    static void		getIDs(ObjectType,DBKeySet&);
+			//!< Does not erase the IDs at start
+
+    bool		isOK() const;
+    inline const IOObj*	ioObj() const		{ return ioobj_; }
+    const char*		name() const;
+    inline ObjectType	type() const		{ return type_; }
+
+    bool		getSectionIDs(TypeSet<SectionID>&) const;
+    bool		getAttribNames(BufferStringSet&) const;
+    Interval<float>	getZRange() const;
+    StepInterval<int>	getInlRange() const;
+    StepInterval<int>	getCrlRange() const;
+    IOPar*		getPars() const;
+    int			getParsOffsetInFile() const;
+    uiString		getMessage() const;
+    const char*		timeLastModified() const;
+
+    // Surface
+    inline bool		isSurface() const	{ return type_ != Body; }
+    bool		getSurfaceData(SurfaceIOData&,uiString& err) const;
+
+    // Horizon
+    inline bool		isHorizon() const	{ return type_ < FaultStickSet;}
+    inline bool		is2DHorizon() const	{ return type_ == Horizon2D; }
+    LevelID		levelID() const;
+    static void		getTiedToLevelID(LevelID lvlid,DBKeySet&,
+					 bool is2d);
+    static bool		sortHorizonsOnZValues(const DBKeySet&,
+					      DBKeySet&);
+
+    // 2D Horizons
+    bool		getLineNames(BufferStringSet&) const;
+    bool		getGeomIDs(GeomIDSet&) const;
+    bool		getTrcRanges(TypeSet< StepInterval<int> >&) const;
+    bool		hasGeomIDs() const;
+
+    // Body
+    bool		getBodyRange(TrcKeyZSampling&) const;
+
+    // FaultStickSet
+    int		nrSticks() const;
+
+    // Helpful stuff
+    static ObjectType	objectTypeOfIOObjGroup(const char*);
+
+protected:
+
+    ObjectType		type_;
+    IOObj*		ioobj_;
+    mutable dgbSurfaceReader* reader_;
+
+    void		setType();
+};
+
+} // namespace EM

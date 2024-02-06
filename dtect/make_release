@@ -1,0 +1,91 @@
+#!/bin/csh -f
+
+if ( $?appmanbase ) then
+else
+    echo "appmanbase not set"
+    exit 1
+endif
+
+set buildtype=Release
+set dodoc=""
+set cmakedoc=""
+set shallow=no
+set doupd=yes
+
+parse_args:
+if ( "$1" == "" ) then
+    goto do_it
+else if ( "$1" == "--doc" ) then
+    set dodoc=--doc
+    set cmakedoc="-DBUILD_DOCUMENTATION=yes"
+else if ( $1 == "--internal" ) then
+    set buildtype=RelWithDebInfo
+else if ( $1 == "--shallow" ) then
+    set shallow=yes
+else if ( $1 == "--noupd" ) then
+    set doupd=no
+else if ( $1 == "--onlymake" ) then
+    set doupd=no
+    set shallow=yes
+else
+    echo "Usage : $0 [--doc] [--internal] [--shallow] [--noupd] [--onlymake]"
+    exit 1
+endif
+
+shift
+goto parse_args
+
+do_it:
+
+echo "Making a ${buildtype} build"
+
+set oddir=$WORK:t
+set dgbdir=`echo $oddir | sed 's/od/dgb/'`
+
+set cmakeargs = "-DCMAKE_BUILD_TYPE=${buildtype} \
+		-DCMAKE_INSTALL_PREFIX=$WORK/inst \
+		-DOD_RUN_LMSTRIP=ON \
+		${cmakedoc} \
+		-DQTDIR=${appmanbase}/qt/devel \
+		-DCOINDIR=${appmanbase}/coin/devel \
+		-DOSG_DIR=${appmanbase}/osg/devel"
+
+cd $WORK
+if ( -e CMakeCache.txt ) then
+    if ( ${shallow} == "no" ) then
+        make clean
+        rm CMakeCache.txt
+    endif
+endif
+if ( $doupd == "yes" ) then
+    svn update
+    cmake $cmakeargs
+endif
+
+cd ../$dgbdir
+if ( -e CMakeCache.txt ) then
+    if ( ${shallow} == "no" ) then
+	make clean
+	rm CMakeCache.txt
+    endif
+endif
+
+if ( $doupd == "yes" ) then
+    svn update
+endif
+cmake $cmakeargs -DOpendTect_DIR=$WORK
+
+cd $WORK
+
+set makeallcmd="dtect/make_all ${dodoc} --stoponerr --noupd"
+if ( ${shallow} == "yes" ) then
+    set makeallcmd="${makeallcmd} --shallow"
+endif
+
+$makeallcmd
+make install
+
+cd ../$dgbdir
+make install
+cd $WORK
+

@@ -1,0 +1,138 @@
+/*+
+ * (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ * AUTHOR   : Bert
+ * DATE     : May 2005
+-*/
+
+
+#include "nladataprep.h"
+#include "binnedvalueset.h"
+#include "statrand.h"
+
+
+void NLADataPreparer::limitRange( const Interval<float>& r )
+{
+    Interval<float> rg( r ); rg.sort(true);
+    const float ext = rg.width() * mDefEpsF;
+    rg.widen( ext, false );
+    bvs_.removeRange( targetcol_, rg, false );
+}
+
+
+void NLADataPreparer::removeUndefs( bool targetonly )
+{
+    TypeSet<BinnedValueSet::SPos> poss;
+    BinnedValueSet::SPos pos;
+    while ( bvs_.next(pos) )
+    {
+	float* vals = bvs_.getVals( pos );
+	if ( targetonly && mIsUdf(vals[targetcol_]) )
+	    poss += pos;
+	else
+	{
+	    for ( int idx=0; idx<bvs_.nrVals(); idx++ )
+	    {
+		if ( mIsUdf(vals[idx]) )
+		    { poss += pos; break; }
+	    }
+	}
+    }
+    bvs_.remove( poss );
+}
+
+
+void NLADataPreparer::balance( const NLADataPreparer::BalanceSetup& setup )
+{
+    ObjectSet<BinnedValueSet> bvss;
+    for ( int idx=0; idx<setup.nrclasses; idx++ )
+    {
+	BinnedValueSet* newbvs = new BinnedValueSet( 0, true );
+	newbvs->copyStructureFrom( bvs_ );
+	bvss += newbvs;
+    }
+
+    const int nrvals = bvs_.nrVals();
+    mAllocLargeVarLenArr( Interval<float>, rgs, nrvals );
+    BinnedValueSet::SPos pos; BinID bid;
+    bool first_pos = true;
+    while ( bvs_.next(pos) )
+    {
+	const float* vals = bvs_.getVals( pos );
+	for ( int idx=0; idx<nrvals; idx++ )
+	{
+	    if ( first_pos )
+		rgs[idx].start = rgs[idx].stop = vals[idx];
+	    else
+		rgs[idx].include( vals[idx] );
+	}
+	first_pos = false;
+    }
+
+    const Interval<float> targetrg( rgs[targetcol_] );
+    pos = BinnedValueSet::SPos();
+    const float targetrgwdth = targetrg.width();
+    while ( bvs_.next(pos) )
+    {
+	const float* vals = bvs_.getVals( pos );
+	float val = vals[targetcol_];
+	if ( mIsUdf(val) ) continue;
+
+	float relpos = (val-targetrg.start) / targetrgwdth;
+	relpos *= setup.nrclasses; relpos -= 0.5;
+	int clss = mNINT32( relpos );
+	if ( clss < 0 )			clss = 0;
+	if ( clss >= setup.nrclasses )	clss = setup.nrclasses-1;
+	bvs_.get( pos, bid );
+	bvss[clss]->add( bid, vals );
+    }
+
+    bvs_.setEmpty();
+    for ( int idx=0; idx<setup.nrclasses; idx++ )
+    {
+	BinnedValueSet& bvs = *bvss[idx];
+	const int totsz = mCast( int, bvs.totalSize() );
+	if ( totsz < setup.nrptsperclss )
+	    addVecs( bvs, setup.nrptsperclss - totsz, setup.noiselvl, rgs );
+	else
+	    bvs.randomSubselect( totsz - setup.nrptsperclss );
+	bvs_.append( bvs );
+    }
+    deepErase( bvss );
+}
+
+
+void NLADataPreparer::addVecs( BinnedValueSet& bvs, int nr, float noiselvl,
+				const Interval<float>* rgs )
+{
+    const int orgsz = mCast( int, bvs.totalSize() );
+    if ( orgsz == 0 )
+	return;
+
+    bvs.allowDuplicatePositions( true );
+    BinnedValueSet bvsnew( bvs.nrVals(), true );
+    BinID bid;
+    const int nrvals = bvs.nrVals();
+    const bool nonoise = noiselvl < 1e-6 || noiselvl > 1 + 1e-6;
+    for ( int idx=0; idx<nr; idx++ )
+    {
+	const int dupidx = Stats::randGen().getIndex( orgsz );
+	BinnedValueSet::SPos pos = bvs.getPos( dupidx );
+	const float* vals = bvs.getVals( pos );
+	bvs.get( pos, bid );
+	if ( nonoise )
+	    bvsnew.add( bid, vals );
+	else
+	{
+	    mAllocLargeVarLenArr( float, newvals, nrvals );
+	    for ( int validx=0; validx<nrvals; validx++ )
+	    {
+		float wdth = rgs[validx].stop - rgs[validx].start;
+		wdth *= noiselvl;
+		newvals[validx] = (float) (vals[validx] +
+				  ((Stats::randGen().get()-0.5) * wdth));
+	    }
+	    bvsnew.add( bid, newvals );
+	}
+    }
+    bvs.append( bvsnew );
+}

@@ -1,0 +1,17 @@
+#!/bin/bash 
+
+kernel=`uname -a | awk '{print $1}'`
+
+if [ "${kernel}" == "Darwin" ]; then
+    /usr/sbin/sysctl hw.ncpu | awk '{print $2}'
+    exit 0
+fi
+
+if [ "${kernel}" == "Linux" ]; then
+    cat /proc/cpuinfo | grep processor | wc -l
+    exit 0
+fi
+
+# Good default
+echo 1
+

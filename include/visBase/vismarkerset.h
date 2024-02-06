@@ -1,0 +1,148 @@
+#pragma once
+
+/*+
+________________________________________________________________________
+
+ (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ Author:	Nanne Hemstra
+ Date:		July 2002
+________________________________________________________________________
+
+
+-*/
+
+#include "visobject.h"
+#include "trigonometry.h"
+#include "draw.h"
+#include "viscoord.h"
+#include "visnormals.h"
+
+namespace osgGeo { class MarkerSet; }
+
+namespace visBase
+{
+    class PolygonOffset;
+
+/*!\brief
+
+MarkerSet is a set of basic pickmarker with a constant size on screen.
+Size and shape are settable.
+
+*/
+
+mExpClass(visBase) MarkerSet : public VisualObjectImpl
+{
+public:
+
+    enum AutoRotateMode
+    {
+	NO_ROTATION,
+	ROTATE_TO_SCREEN,
+	ROTATE_TO_CAMERA,
+	ROTATE_TO_AXIS
+    };
+
+    static MarkerSet*	create()
+			mCreateDataObj(MarkerSet);
+
+    Coordinates*	getCoordinates()         { return coords_; }
+    const Coordinates*	getCoordinates()  const  { return coords_; }
+    Normals*		getNormals();
+
+    void		setMaterial(visBase::Material*);
+			//!<If material is null, markers will be single color
+
+    void		setMarkersSingleColor(const Color& singlecolor);
+			//!<all markers will use the same color, the color can
+			//!< also be set by markerstyle
+    Color		getMarkersSingleColor() const;
+    bool		usesSingleColor() const;
+    void		getColorArray(TypeSet<Color>& colors) const;
+
+    void		setMarkerStyle(const OD::MarkerStyle3D&);
+			/*!<Sets predefined shape and size.
+			    Will only use color of markerstyle if no
+			    material is set.*/
+    OD::MarkerStyle3D&	getMarkerStyle() { return markerstyle_; }
+    const OD::MarkerStyle3D& getMarkerStyle() const { return markerstyle_; }
+    void		setType(OD::MarkerStyle3D::Type);
+			/*!<Sets predefined shape. */
+    OD::MarkerStyle3D::Type	getType() const;
+
+    void		setScreenSize(float);
+			/*!<If a nonzero value is given, the object will
+			    try to have the same size (in pixels) on the screen
+			    at all times. */
+    float		getScreenSize() const;
+    static float	cDefaultScreenSize() { return 5; }
+
+    void		setMarkerHeightRatio(float);
+    float		getMarkerHeightRatio() const;
+
+    void		setMinimumScale(float);
+    float		getMinimumScale() const;
+
+    void		setMaximumScale(float);
+    float		getMaximumScale() const;
+
+    void		setAutoRotateMode(AutoRotateMode);
+
+    void		setRotationForAllMarkers(const Coord3&, const float);
+    void		setSingleMarkerRotation(const Quaternion&, int);
+    void		applyRotationToAllMarkers(bool);
+
+
+    void		doFaceCamera(bool yn);
+			/*!<If true, the maker will always be rotated so the
+			    same part of the marker always faces the camera. */
+    bool		facesCamera() const;
+
+    void		setDisplayTransformation( const mVisTrans* );
+    const mVisTrans*	getDisplayTransformation() const;
+
+    void		setPixelDensity(float);
+    float		getPixelDensity() const { return pixeldensity_; }
+
+    void		removeMarker(int idx);
+
+    void		clearMarkers();
+			//!<Removes all markers
+    void		turnMarkerOn(unsigned int idx,bool);
+    bool		markerOn(unsigned int);
+    void		turnAllMarkersOn(bool);
+
+    int			findClosestMarker(const Coord3&, bool scenespace=false);
+    int			findMarker(const Coord3&, const Coord3& eps,
+				   bool scenespace = false);
+
+    void		setMarkerResolution(float res);
+			/*!< The res value is between 0 and 1. It indicates the
+			quality of marker visualization. */
+
+     int		size() const;
+     int		addPos(const Coord3&, bool draw = true);
+    void		setPos(int, const Coord3&,bool draw = true);
+    void		insertPos(int, const Coord3&,bool draw = true);
+    void		forceRedraw(bool);
+    void		addPolygonOffsetNodeState();
+    void		removePolygonOffsetNodeState();
+
+protected:
+    void		materialChangeCB(CallBacker*);
+				~MarkerSet();
+
+    RefMan<Coordinates>		coords_;
+    osg::Array*			onoffarr_;
+    RefMan<Normals>		normals_;
+    ConstRefMan<mVisTrans>	displaytrans_;
+    osgGeo::MarkerSet*		markerset_;
+    OD::MarkerStyle3D		markerstyle_;
+
+    float			pixeldensity_;
+
+    float			rotationangle_;
+    Coord3			rotationvec_;
+    PolygonOffset*		offset_;
+};
+
+} // namespace visBase

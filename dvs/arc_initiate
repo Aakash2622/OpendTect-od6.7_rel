@@ -1,0 +1,11 @@
+#!/bin/csh -f
+
+if ( $#argv < 1 ) then
+	echo -n "Please enter a name for the new branch: "
+	set branchnm="$<"
+else
+	set branchnm="$*"
+endif
+
+git checkout -b "$branchnm"
+git commit -a

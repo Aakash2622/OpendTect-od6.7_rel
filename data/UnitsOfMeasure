@@ -1,0 +1,78 @@
+dTect V4.5
+Units of measure
+Fri Mar 15 16:32:41 2013
+!
+Seconds: Time`s`1
+Milliseconds: Time`ms`0.001
+Microseconds: Time`us`1e-6
+-Seconds: Time`s`-1
+-Milliseconds: Time`ms`-0.001
+-Microseconds: Time`us`-1e-6
+Meter: Distance/Depth`m`1
+Feet: Distance/Depth`ft`0.3048
+Inches: Distance/Depth`in`0.0254
+Millimeters: Distance/Depth`mm`0.001
+-Meter: Distance/Depth`-m`-1
+-Feet: Distance/Depth`-ft`-0.3048
+Kg/m3: Density`kg/m3`1
+Gram/cm3: Density`g/cc`1000
+Pounds/gallon: Density`ppg`119.83
+Meter/second: Velocity`m/s`1
+Feet/second : Velocity`ft/s`0.3048
+Km/second : Velocity`km/s`1000
+Seconds/meter: Sonic travel time`s/m`1
+Microseconds/meter: Sonic travel time`us/m`1e-6
+Microseconds/foot: Sonic travel time`us/ft`3.28084e-6
+Meter/second x Kg/m3: Impedance`m/s x kg/m3`1
+Meter/second x Gram/cm3: Impedance`m/s x g/cc`1000
+Kg/m3 / Microseconds/meter: Impedance`kg/m3 / us/m`1000000
+Feet/second x Kg/m3: Impedance`ft/s x kg/m3`0.3048
+Feet/second x Gram/cm3: Impedance`ft/s x g/cc`304.8
+Kg/m3 / Microseconds/feet: Impedance`kg/m3 / us/ft`304800
+Gram/ft2s: Impedance`g/ft2s`0.0107639
+Fraction: Volumetrics``1
+Ratio: Elastic Ratio|Anisotropy``1
+Percent: Volumetrics|Elastic Ratio|Anisotropy`%`0.01
+Darcy: Permeability`D`9.8692327e-13
+mDarcy: Permeability`mD`9.8692327e-16
+API: Gamma Ray`API`1
+Volt: Electrical Potential`V`1
+mVolt: Electrical Potential`mV`0.001
+OhmMeter: Resistivity`ohmm`1
+Siemens/meter: Conductivity`S/m`1
+KiloPascal/m: Pressure Gradient`kPa/m`1e3
+Psi/ft: Pressure Gradient`psi/ft`22620.6
+Pascal.Kg/m3: Pressure-Weight`Pa.Kg/m3`1
+Pascal.g/cm3: Pressure-Weight`Pa.g/cm3`1e3
+GigaPascal.Kg/m3: Pressure-Weight`GPa.Kg/m3`1e9
+GigaPascal.g/cm3: Pressure-Weight`GPa.g/cm3`1e12
+1/Pascal: Compressibility`1/Pa`1
+GN/m2: Compressibility`GN/m2`1e9
+Degrees Celcius: Temperature`deg.C`1`273.15
+Degrees Fahrenheit: Temperature`deg.F`0.5555555`255.3722222222222222
+Kelvin: Temperature`K`1
+Pascal: Pressure`Pa`1
+KiloPascal: Pressure`kPa`1e3
+MegaPascal: Pressure`MPa`1e6
+GigaPascal: Pressure`GPa`1e9
+Atmosphere: Pressure`atm`101325.01
+Bar: Pressure`bar`1e5
+Psi: Pressure`psi`6894.7573
+Square meter: Area`m2`1
+Square kilometer: Area`km2`1e-6
+Square mile: Area`mi2`3.86102158542e-7
+Acre: Area`ac`2.4710538147e-4
+Liter: Volume`L`1000
+Cubic meters: Volume`m3`1
+Cubic centimeters: Volume`cm3`1e6
+Cubic mile: Volume`mi3`2.3991275858e-10
+Cubic feet: Volume`ft3`35.314666721
+Cubic inch: Volume`in3`61023.744095
+Gallon [UK]: Volume`gal`219.9692483
+Gallon [US]: Volume`usgal`264.1720524
+Barrels: Volume`barrels`6.2898107704
+Thousand Barrels: Volume`Mbbl`6.2898107704e-3
+Million Barrels: Volume`MMbbl`6.2898107704e-6
+Billion Cubic Feet: Volume`bcf`35.314666721e-9
+!
+

@@ -1,0 +1,134 @@
+#!/bin/csh -f
+#_______________________________________________________________________________
+#
+# (C) dGB Beheer B.V.
+# OpenTect environment initialisation script
+# $Id: .init_dtect,v 1.7 2012/07/27 09:10:29 relman Exp $
+#_______________________________________________________________________________
+
+#-----------------------------------------------------
+# Filled by 'install'
+
+if ( ! $?DTECT_APPL ) then
+    setenv DTECT_APPL "__INST_DIR__"
+endif
+
+if ( ! $?DTECT_DATA ) then
+    if ( $?dGB_DATA ) then
+	setenv DTECT_DATA "$dGB_DATA"
+    else
+	setenv DTECT_DATA "__DATA_DIR__"
+    endif
+endif
+
+if ( "$DTECT_DATA" == "__none__" ) then
+    unsetenv DTECT_DATA
+endif
+
+#-----------------------------------------------------
+# General initialisation
+
+source "${DTECT_APPL}/bin/mksethdir" "${DTECT_APPL}"
+
+setenv LANG C
+setenv LC_NUMERIC C
+
+#-----------------------------------------------------
+# PATH variables
+
+if ( -d "${DTECT_APPL}/bin/${binsubdir}/Release" ) then
+    set bindir="${DTECT_APPL}/bin/${binsubdir}/Release"
+else if ( -d "${DTECT_APPL}/bin/${binsubdir}/Debug" ) then
+    set bindir="${DTECT_APPL}/bin/${binsubdir}/Debug"
+else
+    exit 1
+endif
+set binpath="${bindir}:${DTECT_APPL}/bin"
+
+setenv PATH "${binpath}:${PATH}"
+
+if ( $HDIR == mac ) then
+
+    if ( $?DYLD_LIBRARY_PATH ) then
+	setenv OD_SYSTEM_LIBRARY_PATH "${DYLD_LIBRARY_PATH}"
+    endif
+
+else
+
+    if ( $?LD_LIBRARY_PATH ) then
+	setenv OD_SYSTEM_LIBRARY_PATH "${LD_LIBRARY_PATH}"
+    endif
+
+    if ( ! -e "${bindir}/../lib" ) then
+	alias initwarn 'echo "${bindir}/../lib does not exist" ; echo "Please check your installation" ; echo "The application can however continue normally."'
+	if ( $?LD_LIBRARY_PATH ) then
+	    setenv LD_LIBRARY_PATH ${bindir}:${LD_LIBRARY_PATH}
+	else
+	    setenv LD_LIBRARY_PATH ${bindir}
+	endif
+    endif
+
+    set ldconfig = "/sbin/ldconfig"
+
+    # gcc library compatibility check
+    set odsystemlibsdir = "${bindir}/systemlibs"
+    if ( -e ${ldconfig} ) then
+        set libstdc = `${ldconfig} -p | grep libstdc++.so.6 | grep 64 | tr ' ' '\n' | grep / | head -n 1`
+        set gccmajorver = `strings "${libstdc}" | grep -m 1 GLIBC_2.17`
+        if ( ${gccmajorver} == "" ) then
+	    if ( $?LD_LIBRARY_PATH ) then
+		setenv LD_LIBRARY_PATH "${odsystemlibsdir}":${LD_LIBRARY_PATH}
+	    else
+		setenv LD_LIBRARY_PATH "${odsystemlibsdir}"
+	    endif
+        endif
+    else
+	if ( $?LD_LIBRARY_PATH ) then
+	    setenv LD_LIBRARY_PATH "${odsystemlibsdir}":${LD_LIBRARY_PATH}
+	else
+	    setenv LD_LIBRARY_PATH "${odsystemlibsdir}"
+	endif
+    endif
+
+    if ( -e "${bindir}"/libdGBPDF3D.so ) then
+	# OpenSSL presence check
+	if ( -e ${ldconfig} ) then
+	    set syslibssl = `${ldconfig} -p | grep libssl.so.1.1 | grep 64 | tr ' ' '\n' | grep / | head -n 1`
+	    set syslibcrypto = `${ldconfig} -p | grep libcrypto.so.1.1 | grep 64 | tr ' ' '\n' | grep / | head -n 1`
+	else
+	    set syslibssl = "/usr/lib64/libssl.so.1.1"
+	    set syslibcrypto = "/usr/lib64/libcrypto.so.1.1"
+	endif
+
+	if ( ! -e "${syslibssl}" || ! -e "${syslibcrypto}" ) then
+	    set odopenssllibdir = "${bindir}"/OpenSSL
+	    if ( -d "${odopenssllibdir}" ) then
+		if ( $?LD_LIBRARY_PATH ) then
+		    setenv LD_LIBRARY_PATH "${odopenssllibdir}":${LD_LIBRARY_PATH}
+		else
+		    setenv LD_LIBRARY_PATH "${odopenssllibdir}"
+		endif
+	    endif
+	endif
+    endif
+
+    # kludge for Fedora 8
+    setenv LIBXCB_ALLOW_SLOPPY_LOCK 1
+
+endif
+
+
+#-----------------------------------------------------
+# Extra initialisations
+
+set nonomatch=yes
+
+cd "$DTECT_APPL"
+
+foreach fil ( odinit.* )
+    if ( -r "$fil" ) source "$fil"
+end
+
+if ( $?CHECK_GL ) then
+    source "${DTECT_APPL}/bin/init_dtect_GL"
+endif

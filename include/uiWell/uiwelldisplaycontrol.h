@@ -1,0 +1,86 @@
+#pragma once
+
+/*+
+________________________________________________________________________
+
+ (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ Author:        Bruno
+ Date:          Mar 2009
+________________________________________________________________________
+
+-*/
+
+
+#include "uiwellmod.h"
+#include "notify.h"
+#include "bufstring.h"
+
+class MouseEventHandler;
+class uiWellDahDisplay;
+
+namespace Well { class Marker; }
+
+mExpClass(uiWell) uiWellDisplayControl : public CallBacker
+{
+public:
+				uiWellDisplayControl(uiWellDahDisplay&);
+				~uiWellDisplayControl();
+
+    void			addDahDisplay(uiWellDahDisplay&);
+    void			removeDahDisplay(uiWellDahDisplay&);
+    void			clear();
+
+    bool			isMouseDown() const	{ return ismousedown_;}
+    void			setMouseDown(bool yn)   { ismousedown_ = yn; }
+    bool			isCtrlPressed() const	{return isctrlpressed_;}
+    void			setCtrlPressed(bool);
+
+    const uiWellDahDisplay*	selDahDisplay() const	{ return seldisp_; }
+    const Well::Marker&		selMarker() const	{ return selmarker_; }
+
+    void			setSelMarker(Well::Marker);
+    void			highlightMarker(Well::Marker,bool);
+
+
+    float			time() const	{ return time_; }
+    float			dah() const	{ return dah_; }
+    float			xPos() const	{ return xpos_; }
+    float			yPos() const	{ return ypos_; }
+
+    MouseEventHandler*		mouseEventHandler();
+
+    Notifier<uiWellDisplayControl>  posChanged;
+    Notifier<uiWellDisplayControl>  mousePressed;
+    Notifier<uiWellDisplayControl>  mouseReleased;
+
+    Notifier<uiWellDisplayControl> markerSel;
+
+protected:
+
+    ObjectSet<uiWellDahDisplay> logdisps_;
+    uiWellDahDisplay*		seldisp_;
+
+    BufferString                info_;
+    bool			ismousedown_;
+    bool			isctrlpressed_;
+
+    Well::Marker&		selmarker_;
+    Well::Marker&		lastselmarker_;
+
+    MouseEventHandler&		mouseEventHandler(int);
+
+    void			getPosInfo(BufferString&) const;
+    float			mousePos() const;
+
+    float			time_;
+    float			dah_;
+    float			xpos_;
+    float			ypos_;
+
+    void			mouseMovedCB(CallBacker*);
+    void                        mousePressedCB(CallBacker*);
+    void                        mouseReleasedCB(CallBacker*);
+    void			setPosInfo(CallBacker*);
+    void			setSelDahDisplay(CallBacker*);
+    void			setSelMarkerCB(CallBacker*);
+};

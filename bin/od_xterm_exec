@@ -1,0 +1,49 @@
+#!/bin/csh -f
+#_______________________________________________________________________________
+#
+# (C) dGB Beheer B.V.
+# $Id$
+#
+# script to run in xterm for od_exec
+#_______________________________________________________________________________
+
+if ( $?DTECT_SCRIPT_VERBOSE ) then
+    echo "$0  ++++++"
+    echo "args: $*"
+    set verbose=yes
+    set echo=on
+endif
+
+set askclose=0
+
+if ( $?DTECT_SCRIPT_DEBUG ) then
+    set askclose=1
+endif
+
+if ( $?DTECT_ASK_CLOSE ) then
+    set askclose=1
+endif
+
+set DTECT_APPL="$1"
+shift
+
+if ( -e $DTECT_APPL/bin/init_dtect ) then
+    source $DTECT_APPL/bin/init_dtect
+endif
+
+if ( "$1" == "--askclose" ) then
+    set askclose=1
+    shift
+endif
+
+eval $*
+set st=$status
+
+if ( $askclose == 1 ) then
+    echo ""
+    echo -n "Press enter to close xterm ..."
+    set inp=$<
+endif
+
+exit $st
+

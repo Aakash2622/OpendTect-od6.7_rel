@@ -1,0 +1,421 @@
+/*+
+________________________________________________________________________
+
+ (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ Author:        Nageswara
+ Date:          Nov 2009
+________________________________________________________________________
+
+-*/
+
+#include "waveletattrib.h"
+
+#include "arrayndimpl.h"
+#include "arrayndalgo.h"
+#include "fftfilter.h"
+#include "fourier.h"
+#include "genericnumer.h"
+#include "hilberttransform.h"
+#include "linsolv.h"
+#include "phase.h"
+#include "wavelet.h"
+#include "windowfunction.h"
+
+
+WaveletAttrib::WaveletAttrib( const Wavelet& wvlt )
+	: wvltarr_(0)
+{
+    setNewWavelet( wvlt );
+}
+
+
+WaveletAttrib::~WaveletAttrib()
+{ delete wvltarr_; }
+
+
+void WaveletAttrib::setNewWavelet( const Wavelet& wvlt )
+{
+    wvltsz_ = wvlt.size();
+    delete wvltarr_; wvltarr_ = new Array1DImpl<float>( wvltsz_ );
+    wvlt.getSamples( wvltarr_->getData() );
+    centersample_ = wvlt.centerSample();
+    sr_ = wvlt.sampleRate();
+}
+
+
+static bool doFFT( bool isfwd, const Array1D<float_complex>& input,
+		   Array1D<float_complex>& output, int sz )
+{
+    PtrMan<Fourier::CC> fft = Fourier::CC::createDefault();
+    fft->setInputInfo( Array1DInfoImpl(sz) );
+    fft->setDir( isfwd );
+    fft->setNormalization( !isfwd );
+    fft->setInput( input.getData() );
+    fft->setOutput( output.getData() );
+    return fft->run( true );
+}
+
+
+void WaveletAttrib::getHilbert( Array1DImpl<float>& hilb ) const
+{
+    HilbertTransform hilbert;
+    hilbert.setCalcRange( 0, 0 );
+    hilbert.setInputInfo( Array1DInfoImpl(wvltsz_) );
+    hilbert.setDir( true );
+    hilbert.init();
+    hilbert.transform( *wvltarr_, hilb );
+}
+
+
+void WaveletAttrib::getWaveletArrForPhase( Array1DImpl<float>& cindata ) const
+{
+    for ( int idx=0; idx<wvltsz_; idx++ )
+    {
+	int idy = idx;
+	idy += idx < wvltsz_ - centersample_ ? centersample_
+					     : centersample_ - wvltsz_;
+	cindata.set( idx, wvltarr_->get( idy ) );
+    }
+}
+
+
+void WaveletAttrib::getPhase( Array1DImpl<float>& phase, bool indegrees ) const
+{
+    Array1DImpl<float> cindata( wvltsz_ );
+    getWaveletArrForPhase( cindata );
+    Phase phasecomputer( cindata );
+    phasecomputer.setUnitDeg( indegrees );
+    if ( !phasecomputer.calculate() )
+	return;
+
+    phase = phasecomputer.getPhase();
+}
+
+
+float WaveletAttrib::getAvgPhase( bool indegrees ) const
+{
+    Array1DImpl<float> cindata( wvltsz_ );
+    getWaveletArrForPhase( cindata );
+    Phase phasecomputer( cindata );
+    phasecomputer.setUnitDeg( indegrees );
+    if ( !phasecomputer.calculate() )
+	return mUdf(float);
+
+    return phasecomputer.getAvgPhase();
+}
+
+
+void WaveletAttrib::getPhaseRotated( float* out, float phase ) const
+{
+    if ( mIsUdf(phase) )
+	return;
+
+    Array1DImpl<float> hilbert( wvltsz_ );
+    getHilbert( hilbert );
+
+    for ( int idx=0; idx<wvltsz_; idx++ )
+    {
+	out[idx] = wvltarr_->get(idx) * cos( phase ) -
+		   hilbert.get(idx) * sin( phase );
+    }
+}
+
+
+void WaveletAttrib::getCosTapered( float* out, float taperval ) const
+{
+    if ( mIsUdf(taperval) )
+	return;
+
+    ArrayNDWindow taper( Array1DInfoImpl(wvltsz_), false,
+			 CosTaperWindow::sName(), taperval );
+    if ( !taper.isOK() )
+	return;
+
+    Array1DImpl<float> arrout( wvltsz_ );
+    if ( !taper.apply(wvltarr_,&arrout) )
+	return;
+
+    OD::memCopy( out, arrout.arr(), wvltsz_*sizeof(float) );
+}
+
+
+bool WaveletAttrib::getFreqFiltered( float* out, float f1, float f2,
+				     float f3, float f4 ) const
+{
+    if ( mIsUdf(f2) && mIsUdf(f3) )
+	return false;
+
+    FFTFilter filter( wvltsz_, sr_ );
+    if ( mIsUdf(f2) )
+    {
+	if ( mIsUdf(f4) )
+	    filter.setLowPass( f3 );
+	else
+	    filter.setLowPass( f3, f4 );
+    }
+    else if ( mIsUdf(f3) )
+    {
+	if ( mIsUdf(f1) )
+	    filter.setHighPass( f2 );
+	else
+	    filter.setHighPass( f1, f2 );
+    }
+    else
+    {
+	if ( mIsUdf(f1) || mIsUdf(f4) )
+	    filter.setBandPass( f2, f3 );
+	else
+	    filter.setBandPass( f1, f2, f3, f4 );
+    }
+
+    Array1DImpl<float> arrout( *wvltarr_ );
+    if ( !filter.apply(arrout) )
+	return false;
+
+    OD::memCopy( out, arrout.arr(), wvltsz_*sizeof(float) );
+
+    return true;
+}
+
+
+void WaveletAttrib::muteZeroFrequency( Array1DImpl<float>& vals )
+{
+    const int arraysz = vals.getSize(0);
+    Array1DImpl<float_complex> cvals( arraysz ), tmparr( arraysz );
+
+    for ( int idx=0; idx<arraysz; idx++ )
+	cvals.set( idx, vals.get(idx) );
+
+    doFFT( true, cvals, tmparr, arraysz );
+    tmparr.set( 0, 0 );
+    doFFT( false, tmparr, cvals,  arraysz );
+
+    for ( int idx=0; idx<arraysz; idx++ )
+	vals.set( idx, cvals.get( idx ).real() );
+}
+
+
+void WaveletAttrib::transform( Array1D<float_complex>& fftwvlt, int sz )
+{
+    const int tarsz = mMAX(wvltsz_,sz);
+
+    fftwvlt.setSize( tarsz );
+    Array1DImpl<float_complex> wvlt( tarsz );
+    wvlt.setAll( 0 );
+
+    const int shift = (tarsz - wvltsz_)/2;
+    for ( int idx=0; idx<wvltsz_; idx++ )
+        wvlt.set( idx+shift, wvltarr_->get(idx) );
+
+    doFFT( true, wvlt, fftwvlt, tarsz );
+}
+
+
+void WaveletAttrib::transformBack( const Array1D<float_complex>& fftwvlt,
+                                   Array1D<float>& wvlt )
+{
+    const int arraysz = fftwvlt.getSize( 0 );
+    Array1DImpl<float_complex> cwvlt( arraysz );
+    doFFT( false, fftwvlt, cwvlt,  arraysz );
+
+    const int sz2 = arraysz / 2;
+    for ( int idx=0; idx<sz2; idx++ )
+	wvlt.set( idx+sz2, cwvlt.get(idx).real() );
+
+    for ( int idx=sz2; idx<arraysz; idx++ )
+	wvlt.set( idx-sz2, cwvlt.get(idx).real() );
+}
+
+
+void WaveletAttrib::getFrequency( Array1DImpl<float>& padfreq, int padfac )
+{
+    const int zpadsz = padfac*wvltsz_;
+    padfreq.setSize( zpadsz );
+
+    Array1DImpl<float_complex> czeropaddedarr( zpadsz ), cfreqarr( zpadsz );
+
+    for ( int idx=0; idx<zpadsz; idx++ )
+	czeropaddedarr.set( idx, 0 );
+
+    int padshift = (int)( padfac / 2 )*wvltsz_;
+    for ( int idx=0; idx<wvltsz_; idx++ )
+	czeropaddedarr.set( padfac>1 ? idx+padshift : idx, wvltarr_->get(idx));
+
+    doFFT( true, czeropaddedarr, cfreqarr, zpadsz );
+
+    for ( int idx=0; idx<zpadsz; idx++ )
+	padfreq.set( idx, abs( cfreqarr.get(idx) ) );
+}
+
+
+void WaveletAttrib::applyFreqWindow( const ArrayNDWindow& window, int padfac,
+				     Array1DImpl<float>& timedata )
+{
+    int padsz = padfac*wvltsz_;
+    Array1DImpl<float_complex> ctimearr( padsz ), cfreqarr( padsz );
+
+    int padshift = (int)( padfac / 2 )*wvltsz_;
+    for ( int idx=0; idx<padsz; idx++ )
+	ctimearr.set( idx, 0 );
+
+    for ( int idx=0; idx<wvltsz_; idx++ )
+	ctimearr.set( idx + padshift, timedata.get(idx) );
+
+    doFFT( true, ctimearr, cfreqarr, padsz );
+
+    bool isoddpadsz = ( padsz%2 !=0 );
+
+    for ( int idx=0; idx<padsz/2; idx++ )
+    {
+	float_complex val = cfreqarr.get(idx);
+	float_complex revval = cfreqarr.get( padsz-idx-1 );
+	cfreqarr.set( idx, window.getValues()[idx]*val );
+	cfreqarr.set( padsz-idx-1, window.getValues()[idx]*revval );
+    }
+
+    if ( isoddpadsz ) cfreqarr.set( (int)(padsz/2)+1, 0 );
+
+    doFFT( false, cfreqarr, ctimearr, padsz );
+
+    for ( int idx=0; idx<wvltsz_; idx++ )
+	timedata.set( idx, ctimearr.get( idx + padshift ).real() );
+}
+
+
+
+static void solveAxb( int sz, float* a, float* b, float* x,
+		      TaskRunnerProvider& trprov )
+{
+    Array2DImpl<float> A( sz, sz );
+    A.setAll( 0 );
+    for ( int idx=0; idx<sz; idx++ )
+    {
+	for ( int idy=0; idy<sz; idy++ )
+	{
+	     const int vecidx = Math::Abs(idy-idx) + sz/2;
+	     if ( vecidx<sz )
+		 A.set( idx, idy, a[vecidx] );
+	}
+    }
+
+    LinSolver<float> ls( A );
+    if ( ls.init(trprov) )
+	ls.apply( b, x );
+}
+
+
+ConstRefMan<Wavelet> getMatchFilter( const Wavelet& refwvltin,
+				     const Wavelet& tarwvltin,
+				     TaskRunnerProvider& trprov,
+				     const int* filterszin )
+{
+    ConstRefMan<Wavelet> refwvltinref( &refwvltin );
+    ConstRefMan<Wavelet> tarwvltinref( &tarwvltin );
+    if ( !refwvltinref || !tarwvltinref )
+	return 0;
+
+    RefMan<Wavelet> refwvlt = new Wavelet( *refwvltinref.ptr() );
+    RefMan<Wavelet> tarwvlt = new Wavelet( *tarwvltinref.ptr() );
+    if ( !refwvlt || !tarwvlt )
+	return 0;
+    refwvltinref = 0; tarwvltinref = 0;
+
+    const Wavelet::ZType refwvltsr = refwvlt->samplePositions().step;
+    const Wavelet::ZType tarwvltsr = tarwvlt->samplePositions().step;
+    if ( !mIsEqual(refwvltsr,tarwvltsr,1e-6f) )
+    {
+	if ( refwvltsr > tarwvltsr )
+	{
+	    refwvlt->ensureSymmetricalSamples();
+	    refwvlt->reSample( tarwvltsr );
+	    refwvlt->trimPaddedZeros();
+	}
+	else if ( tarwvltsr > refwvltsr )
+	{
+	    tarwvlt->ensureSymmetricalSamples();
+	    tarwvlt->reSample( refwvltsr );
+	    tarwvlt->trimPaddedZeros();
+	}
+    }
+
+    StepInterval<Wavelet::ZType> posrg( refwvlt->samplePositions() );
+    posrg.include( tarwvlt->samplePositions() );
+    const Wavelet::size_type nrsamps =
+				mCast(Wavelet::size_type,posrg.nrSteps()+1);
+    const int wvltsz = mCast(int,nrsamps);
+    RefMan<Wavelet> outwvlt = new Wavelet( "Match filter" );
+    if ( !outwvlt )
+	return 0;
+
+    outwvlt->reSize( nrsamps );
+    if ( posrg.includes(0.f,true) )
+	outwvlt->setCenterSample( posrg.nearestIndex(0.f) );
+    else
+	outwvlt->setCenterSample( mCast(int,posrg.nrSteps()+1) );
+
+    if ( !refwvlt->samplePositions().isEqual(posrg,1e-6f) )
+    {
+	TypeSet<float> samps; refwvlt->getSamples( samps );
+	TypeSet<float> sampsout( wvltsz, 0.f );
+	const int shift = posrg.nearestIndex(refwvlt->samplePositions().start);
+	const float* sampsarr = samps.arr();
+	float* sampsoutarr = sampsout.arr() + shift;
+	OD::memCopy( sampsoutarr, sampsarr, samps.size()*sizeof(float) );
+	refwvlt->setSamples( sampsout );
+	refwvlt->setCenterSample( outwvlt->centerSample() );
+    }
+    if ( !tarwvlt->samplePositions().isEqual(posrg,1e-6f) )
+    {
+	TypeSet<float> samps; tarwvlt->getSamples( samps );
+	TypeSet<float> sampsout( wvltsz, 0.f );
+	const int shift = posrg.nearestIndex(tarwvlt->samplePositions().start);
+	const float* sampsarr = samps.arr();
+	float* sampsoutarr = sampsout.arr() + shift;
+	OD::memCopy( sampsoutarr, sampsarr, samps.size()*sizeof(float) );
+	tarwvlt->setSamples( sampsout );
+	tarwvlt->setCenterSample( outwvlt->centerSample() );
+    }
+
+/*    WaveletAttrib refattrib( *refwvlt ), tarattr( *tarwvlt );
+    Array1DImpl<float_complex> refspectrum( wvltsz ), tarspectrum( wvltsz ),
+			       filterspectrum( wvltsz );
+    refattrib.transform( refspectrum );
+    tarattr.transform( tarspectrum );
+    for ( int idx=0; idx<wvltsz; idx++ )
+    {
+	filterspectrum.set( idx, std::abs(refspectrum.get(idx)) -
+				 std::abs(tarspectrum.get(idx)) );
+    }
+
+    Array1DImpl<float_complex> outwvltarr( wvltsz );
+    doFFT( false, filterspectrum, outwvltarr, wvltsz );
+    for ( Wavelet::idx_type idx=0; idx<nrsamps; idx++ )
+	outwvlt->set( idx, outwvltarr.get(mCast(int,idx)).real() );*/
+
+    const int filtersz = filterszin ? *filterszin : wvltsz;
+    const int filtersz2 = mCast(int,filtersz/2);
+    mAllocVarLenArr(float,autoref,filtersz);
+    mAllocVarLenArr(float,crossref,filtersz);
+
+    TypeSet<float> refsamps; refwvlt->getSamples( refsamps );
+    const float* wref = refsamps.arr();
+    const int refsz = refsamps.size();
+    float* autorefptr = mVarLenArr( autoref );
+    genericCrossCorrelation( refsz, 0, wref, refsz, 0, wref,
+			     filtersz, -filtersz2, autorefptr );
+
+    TypeSet<float> tarsamps; tarwvlt->getSamples( tarsamps );
+    const float* wtar = tarsamps.arr();
+    const int tarsz = tarsamps.size();
+    float* crossrefptr = mVarLenArr( crossref );
+    genericCrossCorrelation( refsz, 0, wref, tarsz, 0, wtar,
+			     filtersz, -filtersz2, crossrefptr );
+
+    //  Solve Ax=b
+    TypeSet<float> samps; outwvlt->getSamples( samps );
+    float* psamps = samps.arr();
+    solveAxb( filtersz, autoref, crossref, psamps, trprov );
+    outwvlt->setSamples( samps );
+
+    return ConstRefMan<Wavelet>( outwvlt );
+}

@@ -1,0 +1,441 @@
+dTect V4.1
+File Formats
+Mon Jul 19 2010, 14:07:31
+!
+Strata
+Header.Size: -1
+Header.Token: -1`~PR
+Header.Sample interval.Unit: Milliseconds
+Header.Selection.Sample interval: K`~SR`1
+Header.Selection.Center sample: K`~TZ`1
+Body.Selection.Data samples: P`-1/0
+Group: Wavelet
+!
+Inl Crl Z (ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Position.Form: Inl Crl
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Group: Horizon3D
+!
+Inl Crl Z (s)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Position.Form: Inl Crl
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Seconds
+Body.Selection.Z: P`-1/2
+Group: Horizon3D
+!
+X Y Z (ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Group: Horizon3D
+!
+X Y Z (s)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Seconds
+Body.Selection.Z: P`-1/2
+Group: Horizon3D
+!
+X Y Z (ms)
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Group: PickSet
+!
+X Y Z (s)
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Seconds
+Body.Selection.Z: P`-1/2
+Group: PickSet
+!
+Inl Crl Z (ms)
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: Inl Crl
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Group: PickSet
+!
+Inl Crl Z (s)
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: Inl Crl
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Seconds
+Body.Selection.Z: P`-1/2
+Group: PickSet
+!
+X Y Z(ms) Vel
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Body.Selection.Velocity: P`-1/3
+Group: Velocity Function
+!
+X Y Z(s) Vel
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Seconds
+Body.Selection.Z: P`-1/2
+Body.Selection.Velocity: P`-1/3
+Group: Velocity Function
+!
+Inl Crl Z(ms) Vel
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: Inl Crl
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Body.Selection.Velocity: P`-1/3
+Group: Velocity Function
+!
+Inl Crl Z(s) Vel
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: Inl Crl
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Seconds
+Body.Selection.Z: P`-1/2
+Body.Selection.Velocity: P`-1/3
+Group: Velocity Function
+!
+TVDSS(m) TWT(ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Depth.Form: TVDSS
+Body.Depth.Unit: Meter
+Body.Selection.Depth: P`-1/0
+Body.Time.Form: TWT
+Body.Time.Unit: Milliseconds
+Body.Selection.Time: P`-1/1
+Group: DepthTimeModel
+!
+TVDSS(ft) TWT(ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Depth.Form: TVDSS
+Body.Depth.Unit: Feet
+Body.Selection.Depth: P`-1/0
+Body.Time.Form: TWT
+Body.Time.Unit: Milliseconds
+Body.Selection.Time: P`-1/1
+Group: DepthTimeModel
+!
+MD(m) TWT(ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Depth.Form: MD
+Body.Depth.Unit: Meter
+Body.Selection.Depth: P`-1/0
+Body.Time.Form: TWT
+Body.Time.Unit: Milliseconds
+Body.Selection.Time: P`-1/1
+Group: DepthTimeModel
+!
+MD(ft) TWT(ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Depth.Form: MD
+Body.Depth.Unit: Feet
+Body.Selection.Depth: P`-1/0
+Body.Time.Form: TWT
+Body.Time.Unit: Milliseconds
+Body.Selection.Time: P`-1/1
+Group: DepthTimeModel
+!
+TVDSS(m) One-way(ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Depth.Form: TVDSS
+Body.Depth.Unit: Meter
+Body.Selection.Depth: P`-1/0
+Body.Time.Form: One-way TT
+Body.Time.Unit: Milliseconds
+Body.Selection.Time: P`-1/1
+Group: DepthTimeModel
+!
+TVDSS(ft) One-way(ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Depth.Form: TVDSS
+Body.Depth.Unit: Feet
+Body.Selection.Depth: P`-1/0
+Body.Time.Form: One-way TT
+Body.Time.Unit: Milliseconds
+Body.Selection.Time: P`-1/1
+Group: DepthTimeModel
+!
+MD(m) One-way(ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Depth.Form: MD
+Body.Depth.Unit: Meter
+Body.Selection.Depth: P`-1/0
+Body.Time.Form: One-way TT
+Body.Time.Unit: Milliseconds
+Body.Selection.Time: P`-1/1
+Group: DepthTimeModel
+!
+MD(ft) One-way(ms)
+Header.Size: 0
+Header.Token: -1`
+Header.Selection.Undefined Value: R`1e30
+Body.Depth.Form: MD
+Body.Depth.Unit: Feet
+Body.Selection.Depth: P`-1/0
+Body.Time.Form: One-way TT
+Body.Time.Unit: Milliseconds
+Body.Selection.Time: P`-1/1
+Group: DepthTimeModel
+!
+X Y Z (ms) Idx
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Body.Selection.Stick index: P`-1/3
+Group: Fault
+!
+X Y Z (ms)
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Body.Selection.Stick index: P`-1/3
+Group: Fault
+!
+X Y Z (s)
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Seconds
+Body.Selection.Z: P`-1/2
+Group: Fault
+!
+X Y Z (s) Idx
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Seconds
+Body.Selection.Z: P`-1/2
+Body.Selection.Stick index: P`-1/3
+Group: Fault
+!
+MD name (m)
+Header.Size: 0
+Header.Token: -1`
+Body.Depth.Form: MD
+Body.Depth.Unit: Meter
+Body.Selection.Depth: P`-1/0
+Body.Selection.Marker name: P`-1/1
+Group: MarkerSet
+!
+TVDSS name (m)
+Header.Size: 0
+Header.Token: -1`
+Body.Depth.Form: TVDSS
+Body.Depth.Unit: Meter
+Body.Selection.Depth: P`-1/0
+Body.Selection.Marker name: P`-1/1
+Group: MarkerSet
+!
+MD name (ft)
+Header.Size: 0
+Header.Token: -1`
+Body.Depth.Form: MD
+Body.Depth.Unit: Feet
+Body.Selection.Depth: P`-1/0
+Body.Selection.Marker name: P`-1/1
+Group: MarkerSet
+!
+TVDSS name (ft)
+Header.Size: 0
+Header.Token: -1`
+Body.Depth.Form: TVDSS
+Body.Depth.Unit: Feet
+Body.Selection.Depth: P`-1/0
+Body.Selection.Marker name: P`-1/1
+Group: MarkerSet
+!
+Name X Y
+Header.Size: 0
+Header.Token: -1` 
+Body.Selection.Well name: P`-1/0
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/1`P`-1/2
+Group: Simple multi-welldata
+!
+XYZ(ms) MD(m)
+Header.Size: 0
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Body.MD.Unit: Meter
+Group: WellTrack
+!
+XYZ(ms) MD(ft)
+Header.Size: 0
+Header.Token: -1` 
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Milliseconds
+Body.Selection.Z: P`-1/2
+Body.MD.Unit: Feet
+Group: WellTrack
+!
+XYZ(ft) MD(m)
+Header.Size: 0
+Header.Token: -1` 
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Feet
+Body.Selection.Z: P`-1/2
+Body.MD.Unit: Meter
+Group: WellTrack
+!
+XYZ(ft) MD(ft)
+Header.Size: 0
+Header.Token: -1` 
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Feet
+Body.Selection.Z: P`-1/2
+Body.MD.Unit: Feet
+Group: WellTrack
+!
+XYZ(m) MD(m)
+Header.Size: 0
+Header.Token: -1` 
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Meter
+Body.Selection.Z: P`-1/2
+Body.MD.Unit: Meter
+Group: WellTrack
+!
+XYZ(m) MD(ft)
+Header.Size: 0
+Header.Token: -1` 
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: Meter
+Body.Selection.Z: P`-1/2
+Body.MD.Unit: Feet
+Group: WellTrack
+!
+Well track from Petrel (m)
+Header.Size: 16
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/1`P`-1/2
+Body.Z.Unit: -Meter
+Body.Selection.Z: P`-1/3
+Body.MD.Unit: Meter
+Group: WellTrack
+!
+Well track from Petrel (ft)
+Header.Size: 16
+Header.Token: -1`
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/1`P`-1/2
+Body.Z.Unit: -Feet
+Body.Selection.Z: P`-1/3
+Body.MD.Unit: Feet
+Group: WellTrack
+!
+Multi-track from Petrel well tops v2 (m)
+Header.Size: -1
+Header.Token: -1`END
+Body.Selection.Well name: P`-1/8
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: -Meter
+Body.Selection.Z: P`-1/2
+Body.Selection.MD: P`-1/5
+Body.MD.Unit: Meter
+Group: BulkWellTrack
+!
+Multi-track from Petrel well tops v2 (ft)
+Header.Size: -1
+Header.Token: -1`END
+Body.Selection.Well name: P`-1/8
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/0`P`-1/1
+Body.Z.Unit: -Feet
+Body.Selection.Z: P`-1/2
+Body.Selection.MD: P`-1/5
+Body.MD.Unit: Feet
+Group: BulkWellTrack
+!
+Multi marker set from Petrel well tops v2 (m)
+Header.Size: -1
+Header.Token: -1`END
+Body.Depth.Form: MD
+Body.Depth.Unit: Meter
+Body.Selection.Depth: P`-1/5
+Body.Selection.Well name: P`-1/8
+Body.Selection.Marker name: P`-1/7
+Group: BulkWellMarkers
+!
+Multi marker set from Petrel well tops v2 (ft)
+Header.Size: -1
+Header.Token: -1`END
+Body.Depth.Form: MD
+Body.Depth.Unit: Feet
+Body.Selection.Depth: P`-1/5
+Body.Selection.Well name: P`-1/8
+Body.Selection.Marker name: P`-1/7
+Group: BulkWellMarkers
+!
+TrcNr X Y
+Header.Size: 0
+Header.Token: -1`
+Body.Selection.Trace Nr: P`-1/0
+Body.Position.Form: X Y
+Body.Selection.Position: P`-1/1`P`-1/2
+Group: Geom2D
+!
+

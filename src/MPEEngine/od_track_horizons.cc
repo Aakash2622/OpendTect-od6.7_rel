@@ -1,0 +1,109 @@
+/*+
+ * (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ * AUTHOR   : Y.C. Liu
+ * DATE     : April 2007
+-*/
+
+#include "batchprog.h"
+
+#include "horizontracker.h"
+#include "emmanager.h"
+#include "threadwork.h"
+#include "keystrs.h"
+#include "moddepmgr.h"
+#include "iopar.h"
+#include "bufstring.h"
+#include "convert.h"
+#include "emhorizon.h"
+
+
+#include "prog.h"
+
+
+#define mError( msg, action ) \
+{ \
+    strm << msg << sKey::NewLine(); \
+    action; \
+}
+
+bool BatchProgram::go( od_ostream& strm )
+{
+    OD::ModDeps().ensureLoaded("Seis");
+
+    int nrhorizons;
+    if ( !pars().get( MPE::HorizonAutoTracker::sNrHorizons(), nrhorizons ) )
+	mError( "Cannot read nr of horizons", return false );
+
+    ManagedObjectSet<MPE::HorizonAutoTracker> trackers( false );
+    const int queueid =
+	Threads::WorkManager::twm().addQueue(Threads::WorkManager::MultiThread,
+					     "od_track_horizons");
+
+    for ( int idx=0; idx<nrhorizons; idx++ )
+    {
+	PtrMan<IOPar> trackerpar = pars().subselect(Conv::to<const char*>(idx));
+	if ( !trackerpar )
+	    mError( BufferString( "Cannot find settings for tracker ", idx ),
+		    continue );
+
+	DBKey hordbky;
+	if ( !trackerpar->get( MPE::HorizonAutoTracker::sKeyHorizonID(),
+			       hordbky ) )
+	    mError( BufferString( "Cannot find horizonid for tracker ", idx ),
+		    continue );
+
+	LoggedTaskRunnerProvider trprov( strm );
+	EM::ObjectManager& emmgr = EM::getMgr( hordbky );
+	RefMan<EM::Object> emobj =
+		emmgr.loadIfNotFullyLoaded( hordbky, trprov );
+	if ( !emobj )
+	    mError( BufferString( "Cannot load ", hordbky ), continue );
+
+	mDynamicCastGet( EM::Horizon*, hor, emobj );
+	if ( !hor )
+	    mError( BufferString( hordbky, " is not a horizon" ), continue );
+
+	MPE::HorizonAutoTracker* tracker = new MPE::HorizonAutoTracker( *hor );
+	if ( !tracker )
+	    mError( BufferString( "Cannot allocate tracker for", hor->name() ),
+		   continue );
+
+	if ( tracker->usePar( *trackerpar ) )
+	{
+	    BufferString msg( "Cannot parse settings for ", hor->name(), ": " );
+	    msg.add( tracker->errMsg() );
+	    mError( msg.str(), delete tracker; continue );
+	}
+
+	if ( !tracker->init() )
+	{
+	    BufferString msg( "Cannot init tracker for ", hor->name(), ": " );
+	    msg.add( tracker->errMsg() );
+	    mError( msg.str(), delete tracker; continue );
+	}
+
+	trackers += tracker;
+
+	Threads::WorkManager::twm().addWork( Threads::Work(*tracker, false),
+					    0, queueid, false );
+    }
+
+    if ( !trackers.size() )
+	mError("No valid trackers found.", return true; );
+
+    Threads::WorkManager::twm().removeQueue(queueid, true );
+
+    for ( int idx=0; idx<trackers.size(); idx++ )
+    {
+	if ( trackers[idx]->errMsg() )
+	{
+	    BufferString msg( "Error while tracking ",
+			     trackers[idx]->horizon().name(), ": " );
+	    msg.add( trackers[idx]->errMsg() );
+	    mError( msg.str(), continue );
+	}
+    }
+
+    return false;
+}
+

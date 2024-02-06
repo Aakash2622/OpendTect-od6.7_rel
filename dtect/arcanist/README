@@ -1,0 +1,11 @@
+This file contains extensions to arcanist by dgb. If you do changes
+in the files, you have to run:
+
+   arc liberate <directory>
+
+For instance:
+   arc liberate dgbarcanist
+
+After successfully running arc liberate, the __phutil_library_* files will have
+to be committed for the change to be distributed to other users.
+

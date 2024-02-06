@@ -1,0 +1,83 @@
+#pragma once
+
+/*+
+________________________________________________________________________
+
+ (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ Author:        Bruno
+ Date:          Mar 2010
+________________________________________________________________________
+
+-*/
+
+#include "stratlevel.h"
+#include "uiwellmod.h"
+#include "uistratdisplay.h"
+#include "uiwelldahdisplay.h"
+
+/*!\brief creates a display of stratigraphy IF levels are linked to markers.*/
+
+mExpClass(uiWell) WellStratUnitGen : public CallBacker
+{
+public:
+				WellStratUnitGen(StratDispData&,
+						const Well::Data&);
+				~WellStratUnitGen();
+
+    const StratDispData&	stratData() const { return data_; }
+    void			gatherInfo();
+
+protected:
+
+    uiStratTreeToDisp*		uidatagather_;
+
+    ObjectSet<StratDispData::Unit> leaveddispunits_;
+    ObjectSet<const Strat::LeavedUnitRef> leavedunits_;
+    TypeSet<float>		posset_;
+
+    ObjectSet<StratDispData::Unit> dispunits_;
+    ObjectSet<const Strat::NodeOnlyUnitRef> units_;
+
+    StratDispData&		data_;
+    const Well::MarkerSet&	markers_;
+    const Well::D2TModel*	d2tmodel_;
+    const Well::Track& 		track_;
+
+    void 			assignTimesToLeavedUnits();
+    void 			assignTimesToAllUnits();
+    Well::Marker	 	getMarkerFromLvlID(Strat::Level::ID) const;
+    void 			gatherLeavedUnits();
+    bool			areLeavedTied(const Strat::LeavedUnitRef&,
+					    const Strat::LeavedUnitRef&) const;
+
+    void			dataChangedCB(CallBacker*) { gatherInfo(); };
+};
+
+
+mExpClass(uiWell) uiWellStratDisplay : public uiWellDahDisplay
+{
+public:
+
+				uiWellStratDisplay(uiParent*);
+				~uiWellStratDisplay();
+
+    int				transparency() const  
+    					{ return transparency_; }
+    void			setTransparency(int t) 
+    					{ transparency_ = t; dataChanged(); }
+
+    const StratDispData& 	stratData() const { return data_; }
+protected:
+
+    WellStratUnitGen*		stratgen_;
+
+    StratDispData		data_;
+    uiStratDrawer               drawer_;
+  
+    int				transparency_;
+
+    void			dataChangedCB(CallBacker*)
+				{ dataChanged(); }
+    void			gatherInfo();
+    void			draw();
+};

@@ -1,0 +1,103 @@
+#!/bin/csh -f
+
+if ( ! -e ./.arcconfig ) then
+    set gitroot=`git rev-parse --show-toplevel`
+    if ( ${gitroot} != ${PWD} ) then
+	echo "Changing directory to ${gitroot}"
+	cd ${gitroot}
+    endif
+endif
+
+if ( ! -e ./.arcconfig ) then
+    echo "${0}: Cannot find .arcconfig, "
+    exit 1
+endif
+
+set curbranch=`git branch | /bin/grep '\*' | awk '{print $2}'`
+echo "Current branch: ${curbranch}"
+set mainbranch=`awk '{if($1=="\"arc.land.onto.default\":") print $2}' < ./.arcconfig | sed 's/[",,]//g'`
+set brlist=`git branch -vv | /bin/grep -v origin | awk '{if($1=="*") print $2; else print $1}'`
+
+if ( $#brlist == 0 ) then
+    echo "${0}: No local feature branches found"
+    exit
+else if ( $#brlist == 1 ) then
+    set branchnm=${brlist[1]}
+else
+    if ( $#argv > 0 ) then
+	set userinp="$*"
+    else
+	foreach brnm ( ${brlist} )
+	    if ( ${brnm} == ${curbranch} ) then
+		set branchnm=${brnm}
+		goto do_work
+	    endif
+	end
+	echo -n "Branch name: "
+	set userinp="$<"
+    endif
+    foreach brnm ( ${brlist} )
+	if ( ${brnm} == ${userinp} ) then
+	    set branchnm=${brnm}
+	endif
+    end
+    if ( ! $?branchnm ) then
+	echo "${0}: ${userinp} is not a local feature branch"
+	exit 1
+    endif
+endif
+
+do_work:
+echo "First trying to bring $branchnm up-to-date with $mainbranch"
+git checkout $mainbranch
+if ( $status != 0 ) then
+    echo "${0}: Cannot checkout $mainbranch, fix errors and try again"
+    exit 1
+endif
+
+git pull --rebase
+if ( $status != 0 ) then
+    echo "${0}: error while pulling $mainbranch, fix errors and try again"
+    exit 1
+endif
+
+git checkout "$branchnm"
+if ( $status != 0 ) then
+    echo "${0}: Cannot checkout $branchnm, fix errors and try again"
+    exit 1
+endif
+
+git rebase $mainbranch
+if ( $status != 0 ) then
+    echo "${0}: Cannot rebase $branchnm with $mainbranch, fix errors and try again"
+    exit 1
+endif
+
+echo "Going to push all local commits from $branchnm to $mainbranch at Github"
+echo -n "Are you sure you want to go ahead?(y/n): "
+set anschar=$<
+if( "$anschar" != "y" && "$anschar" != "Y" ) then
+    echo "${0}: Aborted by user"
+    exit 1
+endif
+
+git checkout $mainbranch
+if ( $status != 0 ) then
+    echo "${0}: Cannot checkout $mainbranch, fix errors and try again"
+    exit 1
+endif
+
+git merge "$branchnm"
+if ( $status != 0 ) then
+    echo "${0}: Cannot merge $branchnm to $mainbranch, fix errors and try again"
+    exit 1
+endif
+
+git push
+if ( $status != 0 ) then
+    echo "${0}: Cannot push $mainbranch, fix errors and try again"
+    exit 1
+endif
+
+echo "Pushed all changes from branch $branchnm successfully"
+exit 0

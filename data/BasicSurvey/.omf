@@ -1,0 +1,29 @@
+dTect V2.6
+Object Management file
+Thu Sep 14 15:34:45 2006
+!
+ID: 0
+!
+@100010: Seismics
+!
+@100020: Surfaces
+!
+@100030: Locations
+!
+@100040: Features
+!
+@100050: WellInfo
+!
+@100060: NLAs
+!
+@100070: Misc
+!
+@100080: Attribs
+!
+@100090: Models
+!
+Survey root: 1
+Survey Info: dGB`Stream
+$Name: .survey
+!
+

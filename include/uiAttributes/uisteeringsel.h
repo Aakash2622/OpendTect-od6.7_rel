@@ -1,0 +1,102 @@
+#pragma once
+
+/*+
+________________________________________________________________________
+
+ (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ Author:        Bert
+ Date:          April 2001
+________________________________________________________________________
+
+-*/
+
+#include "uiattributesmod.h"
+#include "uiseissel.h"
+#include "uiattrsel.h"
+#include "attribdescid.h"
+
+class uiGenInput;
+class uiLabel;
+namespace Attrib { class Desc; class DescSet; class SelSpec; }
+
+mExpClass(uiAttributes) uiSteerAttrSel : public uiSteerCubeSel
+{ mODTextTranslationClass(uiSteerAttrSel);
+public:
+
+				uiSteerAttrSel(uiParent*,bool is2d,
+					  const uiString& txt=defaultLabel());
+				uiSteerAttrSel(uiParent*,
+					  const Attrib::DescSet&,
+					  const uiString& txt=defaultLabel());
+    static uiString		defaultLabel()	{ return tr("Steering Data"); }
+
+    inline Attrib::DescID	inlDipID() const	{ return getDipID(0); }
+				// Returns -2 when selected is not a dip
+    inline Attrib::DescID	crlDipID() const	{ return getDipID(1); }
+				// Returns -2 when selected is not a dip
+
+    void			setDesc(const Attrib::Desc*);
+    void			setDescSet(const Attrib::DescSet*);
+
+    void			fillSelSpec(Attrib::SelSpec&,bool inl);
+				/* inl=true: AttribSelSpec for inline comp
+				   inl=false: AttribSelSpec for crossline comp*/
+
+protected:
+
+    Attrib::DescID		getDipID(int) const;
+
+    uiAttrSelData		attrdata_;
+};
+
+
+
+/*!\brief Attribute Steering ui element: data + selection of type. */
+
+mExpClass(uiAttributes) uiSteeringSel : public uiGroup
+{ mODTextTranslationClass(uiSteeringSel);
+public:
+
+    typedef Attrib::Desc	Desc;
+    typedef Attrib::DescID	DescID;
+    typedef Attrib::DescSet	DescSet;
+
+				uiSteeringSel(uiParent*,
+					      const Attrib::DescSet*,bool is2d,
+					      bool withconstdir=true,
+					      bool doinit=true);
+				~uiSteeringSel();
+
+    DescID			descID();
+
+    virtual bool		willSteer() const;
+    void			setDesc(const Attrib::Desc*);
+    void			setDescSet(const Attrib::DescSet*);
+    void			setType(int,bool fixed=false);
+
+    void			clearInpField();
+    const char*			text() const;
+
+    Notifier<uiSteeringSel>	steertypeSelected_;
+
+    static IOPar&		inpselhist;
+
+protected:
+
+    const Attrib::DescSet*	descset_;
+
+    uiLabel*			nosteerlbl_;
+    uiGenInput*			typfld_;
+    uiGenInput*			dirfld_;
+    uiGenInput*			dipfld_;
+    uiSteerAttrSel*		inpfld_;
+
+    bool			is2d_;
+    bool			notypechange_;
+    bool			withconstdir_;
+
+    void			createFields();
+    void			doFinalise(CallBacker*);
+    virtual void		typeSel(CallBacker*);
+
+};

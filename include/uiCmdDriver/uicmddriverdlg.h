@@ -1,0 +1,110 @@
+#pragma once
+/*+
+________________________________________________________________________
+
+ (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ Author:        Nageswara
+ Date:          October 2009
+________________________________________________________________________
+
+-*/
+
+#include "uicmddrivermod.h"
+#include "uidialog.h"
+
+class uiCheckBox;
+class uiFileSel;
+class uiTextEdit;
+class uiLabel;
+class uiLabeledComboBox;
+class uiPushButton;
+
+
+namespace CmdDrive
+{
+
+class CmdDriver;
+class CmdRecorder;
+class InteractSpec;
+
+
+mExpClass(uiCmdDriver) uiCmdInteractDlg : public uiDialog
+{ mODTextTranslationClass(uiCmdInteractDlg);
+public:
+				uiCmdInteractDlg(uiParent*,const InteractSpec&);
+
+    bool			unHide() const		{ return unhide_; }
+
+protected:
+    bool			rejectOK();
+    uiTextEdit*			infofld_;
+    uiLabel*			resumelbl_;
+    bool			unhide_;
+};
+
+
+mExpClass(uiCmdDriver) uiCmdDriverDlg : public uiDialog
+{ mODTextTranslationClass(uiCmdDriverDlg);
+public:
+				uiCmdDriverDlg(uiParent*,
+					       CmdDriver&,CmdRecorder&,
+					       const char* defaultscriptsdir=0,
+					       const char* defaultlogdir=0);
+				~uiCmdDriverDlg();
+
+    void			popUp();
+    void			autoStartGo( const char* fnm);
+    void			executeFinished();
+    void			beforeSurveyChg();
+    void			afterSurveyChg();
+
+protected:
+
+    void			selChgCB(CallBacker*);
+    void			selectGoCB(CallBacker*);
+    void			selectAbortCB(CallBacker*);
+    void			selectPauseCB(CallBacker*);
+    void			selectStartRecordCB(CallBacker*);
+    void			selectStopRecordCB(CallBacker*);
+    void			interactCB(CallBacker*);
+    bool			rejectOK();
+    void			interactClosedCB(CallBacker*);
+    void			toolTipChangeCB(CallBacker*);
+
+    void			refreshDisplay(bool runmode,bool idle);
+    void			setDefaultSelDirs();
+    void			setDefaultLogFile();
+
+    uiFileSel*			inpfld_;
+    uiFileSel*			outfld_;
+    uiFileSel*			logfld_;
+
+    bool			inpfldsurveycheck_;
+    bool			outfldsurveycheck_;
+    bool			logfldsurveycheck_;
+    BufferString		logproposal_;
+
+    uiLabeledComboBox*          cmdoptionfld_;
+    uiPushButton*		gobut_;
+    uiPushButton*		abortbut_;
+    uiPushButton*               pausebut_;
+    uiPushButton*               startbut_;
+    uiPushButton*               stopbut_;
+    uiCheckBox*			tooltipfld_;
+    CmdDriver&			drv_;
+    CmdRecorder&		rec_;
+
+    BufferString		defaultscriptsdir_;
+    BufferString		defaultlogdir_;
+
+    uiCmdInteractDlg*		interactdlg_;
+
+private:
+
+    static uiString sInterrupting()
+				{ return tr("Interrupting").embed("-","-"); }
+
+};
+
+
+}; // namespace CmdDrive

@@ -1,0 +1,105 @@
+#!/bin/csh -f
+#_______________________________________________________________________________
+#
+# (C) dGB Beheer B.V.
+# OpenTect startup script
+# $Id: .start_dtect,v 1.10 2012/07/30 14:12:30 kristofer Exp $
+#_______________________________________________________________________________
+
+if ( ! $?CSHCMD ) then
+    setenv CSHCMD ""
+endif
+
+set CHECK_GL=true
+
+source "__INST_DIR__/bin/init_dtect"
+if ( $status != 0 ) then
+    exit 1
+endif
+source "__INST_DIR__/bin/init_dtect_user"
+
+if ( $status == 0 ) then
+
+    if ( `which initwarn | grep aliased | wc -l` == 1 ) then
+	initwarn
+	unalias initwarn
+endif
+
+    if ( $?DTECT_DATA ) then
+	if ( ! -d "$DTECT_DATA" ) then
+	    echo "Warning: the pre-set DTECT_DATA is not valid"
+	    unsetenv DTECT_DATA
+	endif
+    endif
+    if ( $?DTECT_DATA ) then
+	set startdir="$DTECT_DATA" 
+    else
+	set startdir="$HOME"
+    endif
+
+    cd "$startdir"
+
+    if ( $?DTECT_DEBUG && $?DTECT_WINHOME && $?DTECT_WINSETTINGS ) then
+	env | grep DTECT_WINHOME=
+	env | grep DTECT_WINSETTINGS=
+    endif
+    if ( $?DTECT_DEBUG && $?DTECT_HOME && $?DTECT_SETTINGS ) then
+	echo "DTECT_HOME: $DTECT_HOME"
+	echo "DTECT_SETTINGS: $DTECT_SETTINGS"
+    endif
+
+    set hona=`hostname`
+    if ( $?DTECT_USAGE_LOGFILE ) then
+	set date=`date`
+	echo "[START:$date] $USER on $hona" >> $DTECT_USAGE_LOGFILE
+    endif
+
+    set chkupdate = "no"
+    if( ${HDIR} == "mac" ) then
+	set installdir = "OpendTect\ Installer.app"
+    else
+	set installdir = "Installer"
+    endif
+    if ( -x "$DTECT_APPL/../$installdir/run_installer" ) then
+        set chkupdate = "yes"
+    endif
+    if ( $?OD_INSTALLER_POLICY ) then
+	if ( $OD_INSTALLER_POLICY == "None" ) then
+	    set chkupdate = "no"
+	endif
+    endif
+
+    if ( $chkupdate == "yes" ) then
+	set curdir=`pwd`
+	if ( ${HDIR} == "mac" ) then
+	    cd "$DTECT_APPL/../$installdir"
+	    set installerdir=`pwd`
+	    set installercmd= "open ${installerdir}"
+	else
+	    cd "$DTECT_APPL/../$installdir"
+	    set installerdir=`pwd`
+	    set installercmd="${installerdir}/run_installer"
+	endif
+	$CSHCMD "$installercmd" --updcheck_startup --instdir "$DTECT_APPL"
+	cd "${curdir}"
+    endif
+    
+    set mainapp=od_main
+
+    if ( $?DTECT_START_DEBUGGER ) then
+	echo "Original cmd: $CSHCMD $DTECT_APPL/bin/od_exec $mainapp $*"
+	$DTECT_START_DEBUGGER "${bindir}"/$mainapp
+    else
+	$CSHCMD "$DTECT_APPL/bin/od_exec" $mainapp $*
+    endif
+
+    if ( $?DTECT_USAGE_LOGFILE ) then
+	set date=`date`
+	echo "[STOP:$date] $USER on $hona" >> $DTECT_USAGE_LOGFILE
+    endif
+
+else
+
+    exit 1
+
+endif

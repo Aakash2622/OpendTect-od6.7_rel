@@ -1,0 +1,6 @@
+OpendTect V6.7.x : Release info
+
+In general, all fixes in the master 7.0 are also applied in the 6.7 releases.
+
+----
+

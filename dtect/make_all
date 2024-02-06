@@ -1,0 +1,151 @@
+#!/bin/csh -f
+# Script to update and build od/dgb
+# $Id: $
+
+set shallow=no
+set askdeep=no
+set doupd=yes
+set dodoc=no
+set nrcpus=1
+set stoponerr=no
+set cmake_exec=cmake
+set make_cmd=make
+set startdate=`date +%a-%d-%b`
+set starttm=`date +%s`
+set starttmstr=`date +%T`
+set allargs=""
+
+if ( $?CMAKE ) then
+    set cmake_exec=${CMAKE}
+endif
+if ( -r "$WORK/build.ninja" ) then
+    set make_cmd=ninja
+endif
+
+if ( $?OD_MAKE_NR_PROCESSORS ) then
+    set nrcpus=$OD_MAKE_NR_PROCESSORS
+else
+    set nrcpus=`$WORK/dtect/GetNrProc`
+endif
+
+parse_args:
+
+set allargs="$allargs $1"
+
+if ( "$1" == "--shallow" ) then
+    set shallow=yes
+else if ( "$1" == "--make_cmd" ) then
+    set make_cmd=$2
+    shift
+else if ( "$1" == "--askdeep" ) then
+    set askdeep=yes
+else if ( "$1" == "--noupd" ) then
+    set doupd=no
+else if ( "$1" == "--doc" ) then
+    set dodoc=yes
+else if ( "$1" == "--stoponerr" ) then
+    set stoponerr=yes
+else if ( "$1" == "--nrcpus" ) then
+    set nrcpus=$2
+    shift
+else if ( "$1" == "--help" ) then
+    echo "Usage: make_all [options]"
+    echo " --shallow:   do not make clean before start"
+    echo " --noupd:     do not update from remote repository"
+    echo " --stoponerr: stop on all errors (i.e. don't add '-k' to make flags)"
+    echo " --doc:       create classDoc"
+    echo " --nrcpus:    force number of CPUs to use"
+    exit 0
+else
+    goto do_it
+endif
+
+shift
+goto parse_args
+
+do_it:
+
+set flags=""
+if ( $nrcpus > 1 ) set flags="-j$nrcpus"
+if ( $make_cmd != ninja && $stoponerr != "yes" ) set flags="$flags -k"
+echo ""; echo "make flags: $flags"; echo ""
+
+set logdir=$WORK/dtect/log
+if ( ! -d $logdir ) then
+    mkdir $logdir
+endif
+
+alias cdw "cd $WORK"
+
+cdw
+set oddir=$WORK:t
+set dgbdir=`echo $oddir | sed 's/od/dgb/'`
+
+if ( $doupd == yes ) then
+    cd ..
+    echo "make update for $oddir"
+    cd $oddir; $make_cmd update
+    echo ""
+    echo "make update for $dgbdir"
+    sleep 2;
+    cd ../$dgbdir; $make_cmd update
+    cdw
+endif
+
+if ( $askdeep == yes ) then
+    echo ""; echo -n "->> Clean-up before proceed? "
+    set tmpansw=$<
+    if ( "$tmpansw" == "y" || "$tmpansw" == "Y" ) then
+	set shallow=no
+    else
+	set shallow=yes
+    endif
+endif
+
+if ( $shallow == no ) then
+    cdw
+    echo "Cleaning $oddir ..."
+    $make_cmd clean
+    cd ../$dgbdir;
+    echo "Cleaning $dgbdir ..."
+    $make_cmd clean
+    cdw
+endif
+
+if ( ! -e CMakeCache.txt ) then
+    ${cmake_exec} .
+endif
+$make_cmd $flags
+cd ../$dgbdir
+if ( ! -e CMakeCache.txt ) then
+    ${cmake_exec} .
+endif
+$make_cmd $flags
+cdw
+
+programmer_doc:
+
+if ( $dodoc == yes ) then
+    cdw
+    $make_cmd doc
+    cd ../$dgbdir
+    $make_cmd doc
+    cdw
+endif
+
+set stoptm=`date +%s`
+@ duration = $stoptm - $starttm
+@ hours = $duration / 3600
+@ seconds = $duration % 3600
+@ mins = $seconds / 60
+@ seconds = $seconds % 60
+echo ""
+echo -n "Finished $0:t${allargs}. Started ${startdate} ${starttmstr}. Took "
+if ( $hours > 0 ) then
+	echo -n "${hours}h "
+endif
+if ( $mins > 0 ) then
+	echo -n "${mins}m "
+endif
+echo "${seconds}s."
+

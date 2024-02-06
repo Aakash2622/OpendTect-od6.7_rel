@@ -1,0 +1,151 @@
+/*+
+ * (C) dGB Beheer B.V.; (LICENSE) http://opendtect.org/OpendTect_license.txt
+ * AUTHOR   : Bert
+ * DATE     : Oct 1995
+ * FUNCTION : Connections
+-*/
+
+
+#include "streamconn.h"
+#include "od_iostream.h"
+#include "safefileio.h"
+
+
+const bool Conn::Read = true;
+const bool Conn::Write = false;
+const char* StreamConn::sType() { return "Stream"; }
+const char* XConn::sType() { return "X-Group"; }
+
+
+#define mInitList(s,ismine) strm_(s), mine_(ismine), writehelper_(0)
+
+StreamConn::StreamConn() : mInitList(0,true) {}
+StreamConn::StreamConn( od_istream* s ) : mInitList(s,true) { fillCrMsg(s); }
+StreamConn::StreamConn( od_ostream* s ) : mInitList(s,true) { fillCrMsg(s); }
+StreamConn::StreamConn( od_istream& s ) : mInitList(&s,false) { fillCrMsg(&s); }
+StreamConn::StreamConn( od_ostream& s ) : mInitList(&s,false) { fillCrMsg(&s); }
+
+StreamConn::StreamConn( const char* fnm, bool forread ) : mInitList(0,false)
+{ setFileName( fnm, forread ); }
+
+
+StreamConn::~StreamConn()
+{
+    close( false );
+}
+
+
+void StreamConn::fillCrMsg( od_stream* strm )
+{
+    if ( !strm )
+	creationmsg_.set( "No stream" );
+    else if ( !strm->isOK() )
+    {
+	creationmsg_.set( "Error for " ).add( strm->fileName() );
+	if ( !strm->isBad() )
+	    creationmsg_.set( ": empty file" );
+	else
+	    strm->addErrMsgTo( creationmsg_ );
+    }
+    else
+	creationmsg_.setEmpty();
+}
+
+
+bool StreamConn::isBad() const
+{
+    return !strm_ || strm_->isBad();
+}
+
+
+bool StreamConn::forRead() const
+{
+    return strm_ && strm_->forRead();
+}
+
+
+bool StreamConn::forWrite() const
+{
+    return strm_ && strm_->forWrite();
+}
+
+
+void StreamConn::close( bool failed )
+{
+    if ( !writehelper_ )
+    {
+	if ( strm_ && mine_ )
+	    { delete strm_; strm_ = 0; }
+    }
+    else
+    {
+	if ( failed )
+	    writehelper_->rollback();
+	else
+	    writehelper_->commit();
+
+	strm_ = 0;
+	deleteAndZeroPtr( writehelper_ );
+    }
+}
+
+
+od_stream& StreamConn::odStream()
+{
+    if ( strm_ )
+	return *strm_;
+    return od_istream::nullStream();
+}
+
+
+od_istream& StreamConn::iStream()
+{
+    return forRead() ? *static_cast<od_istream*>(strm_)
+		     : od_istream::nullStream();
+}
+
+
+od_ostream& StreamConn::oStream()
+{
+    return forWrite() ? *static_cast<od_ostream*>(strm_)
+		      : od_ostream::nullStream();
+}
+
+
+void StreamConn::setFileName( const char* nm, bool forread )
+{
+    close( true );
+
+    mine_ = true;
+    if ( forread )
+    {
+	if ( !nm || !*nm )
+	{
+	    strm_ = &od_istream::nullStream();
+	    mine_ = false;
+	}
+	else
+	    strm_ = new od_istream( nm );
+    }
+    else
+    {
+	if ( !nm || !*nm )
+	{
+	    strm_ = &od_ostream::nullStream();
+	    mine_ = false;
+	}
+	else
+	{
+	    writehelper_ = new SafeWriteHelper( nm );
+	    strm_ = &writehelper_->stream();
+	}
+    }
+
+    fillCrMsg( strm_ );
+}
+
+
+const char* StreamConn::fileName() const
+{
+    return strm_ ? strm_->fileName() : "";
+}
